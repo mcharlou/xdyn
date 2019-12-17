@@ -4,9 +4,13 @@ build*64
 build_debian
 build_deb8
 build_deb9
+build_deb10
+build_deb10_gcc8
+build_deb10_gcc8_debug
 build_windows
 build_win_posix
 code/build_*
+code/yaml-cpp
 build_doc
 install
 install*32
