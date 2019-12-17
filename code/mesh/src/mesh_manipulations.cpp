@@ -5,9 +5,13 @@
  *      Author: cady
  */
 
+#include <iostream>
+#include <Eigen/Dense>
+
 #include "mesh_manipulations.hpp"
 #include "MeshException.hpp"
 #include "InternalErrorException.hpp"
+#include "GeometricTypes3d.hpp"
 
 double area(const Matrix3x& M, //!< Matrix containing (amongst others), the points of interest
             const int idxA,    //!< Index of the column containing the first point
@@ -206,10 +210,12 @@ bool oriented_clockwise(const VectorOfVectorOfPoints& v, const EPoint& O)
     }
     if (nb_of_clockwise > 10*nb_of_anticlockwise) return true;
     if (nb_of_anticlockwise > 10*nb_of_clockwise) return false;
-    std::stringstream ss;
+    /*std::stringstream ss;
     ss << "Not all facets have the same orientation: " << nb_of_clockwise << " facets seem to be oriented clockwise, but "
        << nb_of_anticlockwise << " facets seem to be oriented anticlockwise.";
-    THROW(__PRETTY_FUNCTION__, MeshException, ss.str());
+    THROW(__PRETTY_FUNCTION__, MeshException, ss.str());*/
+    std::cerr << "Warning: Not all facets have the same orientation: " << nb_of_clockwise << " facets seem to be oriented clockwise, but "
+    	       << nb_of_anticlockwise << " facets seem to be oriented anticlockwise." << std::endl;
     return first_facet_is_oriented_clockwise;
 }
 

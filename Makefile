@@ -1,16 +1,16 @@
 all: windows debian debug doc all_docker_images
 
 windows: windows_gccx_posix
-debian: debian_9_release_gcc_6
+debian: debian_10_release_gcc_8
 debug: debian_9_debug_gcc_6
 
 .PHONY: fetch-ssc-windows cmake-windows package-windows windows doc
 
 
 cmake-debian: BUILD_TYPE = Release
-cmake-debian: BUILD_DIR = build_deb9
+cmake-debian: BUILD_DIR = build_deb10
 cmake-debian: CPACK_GENERATOR = DEB
-cmake-debian: DOCKER_IMAGE = sirehna/base-image-debian9-gcc6-xdyn
+cmake-debian: DOCKER_IMAGE = sirehna/base-image-debian10-gcc8-xdyn
 cmake-debian: BOOST_ROOT = /opt/boost
 cmake-debian: SSC_ROOT = /opt/ssc
 cmake-debian: ci_env=
@@ -72,6 +72,16 @@ debian_10_release_gcc_8: SSC_ROOT = /opt/ssc
 debian_10_release_gcc_8: HDF5_DIR = /usr/local/hdf5/share/cmake
 debian_10_release_gcc_8: ci_env=
 debian_10_release_gcc_8: cmake-debian-target build-debian test-debian
+
+debian_10_debug_gcc_8: BUILD_TYPE = Debug
+debian_10_debug_gcc_8: BUILD_DIR = build_deb10_gcc8_debug
+debian_10_debug_gcc_8: CPACK_GENERATOR = DEB
+debian_10_debug_gcc_8: DOCKER_IMAGE = sirehna/base-image-debian10-gcc8-xdyn
+debian_10_debug_gcc_8: BOOST_ROOT = /opt/boost
+debian_10_debug_gcc_8: SSC_ROOT = /opt/ssc
+debian_10_debug_gcc_8: HDF5_DIR = /usr/local/hdf5/share/cmake
+debian_10_debug_gcc_8: ci_env=
+debian_10_debug_gcc_8: cmake-debian-target build-debian test-debian
 
 windows_gccx_posix: BUILD_TYPE=Release
 windows_gccx_posix: BUILD_DIR=build_win_posix

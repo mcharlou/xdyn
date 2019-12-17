@@ -11,10 +11,17 @@
 #include "parse_address.hpp"
 #include "parse_output.hpp"
 
+struct s_body
+{
+	std::string name="";
+	std::vector<std::string> forces=std::vector<std::string>();
+};
+
 void operator >> (const YAML::Node& node, YamlOutput& f);
 std::string customize(const std::string& var_name, const std::string& body_name);
-void fill(YamlOutput& out, const std::string& body_name);
-std::vector<std::string> get_body_names(const std::string yaml);
+std::string customize2(const std::string& var_name,const std::string& body_name, const std::string& force_name);
+void fill(YamlOutput& out, const s_body& body);
+std::vector<s_body> get_body_names(const std::string yaml);
 
 void operator >> (const YAML::Node& node, YamlOutput& f)
 {
@@ -56,30 +63,44 @@ std::string customize(const std::string& var_name, const std::string& body_name)
     return var_name + "(" + body_name + ")";
 }
 
-void fill(YamlOutput& out, const std::string& body_name)
+std::string customize2(const std::string& var_name,const std::string& body_name, const std::string& force_name)
 {
-    out.data.push_back(customize("x", body_name));
-    out.data.push_back(customize("y", body_name));
-    out.data.push_back(customize("z", body_name));
-    out.data.push_back(customize("u", body_name));
-    out.data.push_back(customize("v", body_name));
-    out.data.push_back(customize("w", body_name));
-    out.data.push_back(customize("p", body_name));
-    out.data.push_back(customize("q", body_name));
-    out.data.push_back(customize("r", body_name));
-    out.data.push_back(customize("qr", body_name));
-    out.data.push_back(customize("qi", body_name));
-    out.data.push_back(customize("qj", body_name));
-    out.data.push_back(customize("qk", body_name));
-
-    out.data.push_back(customize("phi", body_name));
-    out.data.push_back(customize("theta", body_name));
-    out.data.push_back(customize("psi", body_name));
+	return var_name + "(" + force_name + "," + body_name + "," + body_name + ")";
 }
 
-std::vector<std::string> get_body_names(const std::string yaml)
+void fill(YamlOutput& out, const s_body& body)
 {
-    std::vector<std::string> out;
+    out.data.push_back(customize("x", body.name));
+    out.data.push_back(customize("y", body.name));
+    out.data.push_back(customize("z", body.name));
+    out.data.push_back(customize("u", body.name));
+    out.data.push_back(customize("v", body.name));
+    out.data.push_back(customize("w", body.name));
+    out.data.push_back(customize("p", body.name));
+    out.data.push_back(customize("q", body.name));
+    out.data.push_back(customize("r", body.name));
+    out.data.push_back(customize("qr", body.name));
+    out.data.push_back(customize("qi", body.name));
+    out.data.push_back(customize("qj", body.name));
+    out.data.push_back(customize("qk", body.name));
+
+    out.data.push_back(customize("phi", body.name));
+    out.data.push_back(customize("theta", body.name));
+    out.data.push_back(customize("psi", body.name));
+
+    for(auto force:body.forces){
+    	out.data.push_back(customize2("Fx",body.name,force));
+		out.data.push_back(customize2("Fy",body.name,force));
+		out.data.push_back(customize2("Fz",body.name,force));
+		out.data.push_back(customize2("Mx",body.name,force));
+		out.data.push_back(customize2("My",body.name,force));
+		out.data.push_back(customize2("Mz",body.name,force));
+    }
+}
+
+std::vector<s_body> get_body_names(const std::string yaml)
+{
+    std::vector<s_body> out;
     std::stringstream stream(yaml);
     YAML::Parser parser(stream);
     YAML::Node node;
@@ -89,9 +110,25 @@ std::vector<std::string> get_body_names(const std::string yaml)
     {
         for (size_t i = 0 ; i < parameter->size() ; ++i)
         {
-            std::string name;
-            (*parameter)[i]["name"] >> name;
-            out.push_back(name);
+            s_body body;
+            (*parameter)[i]["name"] >> body.name;
+            const YAML::Node *param = (*parameter)[i].FindValue("external forces");
+            if (param){
+            	for(size_t j=0;j<param->size();++j){
+            		std::string model;
+            		(*param)[j]["model"] >> model;
+            		body.forces.push_back(model);
+            	}
+            }
+            param = (*parameter)[i].FindValue("controlled forces");
+			if (param){
+				for(size_t j=0;j<param->size();++j){
+					std::string name;
+					(*param)[j]["name"] >> name;// Controlled forces are identified by their names, not their models
+					body.forces.push_back(name);
+				}
+			}
+            out.push_back(body);
         }
     }
     return out;

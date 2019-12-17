@@ -117,7 +117,7 @@ TEST_F(mesh_manipulationsTest, can_deduce_the_orientation_of_the_normals_on_a_tr
     ASSERT_TRUE(oriented_clockwise(one_triangle(), EPoint(1,2,3)));
 }
 
-TEST_F(mesh_manipulationsTest, throws_if_not_all_facets_have_the_same_orientation)
+TEST_F(mesh_manipulationsTest, DISABLED_throws_if_not_all_facets_have_the_same_orientation)
 {
     ASSERT_THROW(oriented_clockwise(unit_cube_with_incorrect_orientation(), a.random<EPoint>()), MeshException);
 }
