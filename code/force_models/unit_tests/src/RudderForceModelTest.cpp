@@ -215,7 +215,7 @@ TEST_F(RudderForceModelTest, get_fluid_angle)
     ASSERT_DOUBLE_EQ(-3*PI/4, vs.outside_wake);
 }
 
-TR1(shared_ptr)<WaveModel> RudderForceModelTest::get_wave_model() const
+std::shared_ptr<WaveModel> RudderForceModelTest::get_wave_model() const
 {
     const double Hs = 0.1;
     const double Tp = 5;
@@ -233,12 +233,12 @@ TR1(shared_ptr)<WaveModel> RudderForceModelTest::get_wave_model() const
     const Stretching ss(ys);
     const DiscreteDirectionalWaveSpectrum A = discretize(DiracSpectralDensity(omega0, Hs), DiracDirectionalSpreading(psi), omega_min, omega_max, nfreq, ss);
 
-    return TR1(shared_ptr)<WaveModel>(new Airy(A, phi));
+    return std::shared_ptr<WaveModel>(new Airy(A, phi));
 }
 
 TEST_F(RudderForceModelTest, DISABLED_ship_speed_relative_to_the_fluid)
 {
-    EnvironmentAndFrames env = get_environment_and_frames(get_wave_model());
+    const EnvironmentAndFrames env = get_environment_and_frames(get_wave_model());
     RudderForceModel::Yaml parameters = a.random<RudderForceModel::Yaml>();
     parameters.number_of_blades = 3;
     parameters.blade_area_ratio = 0.5;
@@ -254,7 +254,7 @@ TEST_F(RudderForceModelTest, DISABLED_ship_speed_relative_to_the_fluid)
     BodyWithoutSurfaceForces b(states,0,BlockedDOF(""));
     b.update_kinematics(s, env.k);
 
-    ssc::kinematics::Point Vship_water = F.get_ship_speed(states, t);
+    ssc::kinematics::Point Vship_water = F.get_ship_speed(states, t, env);
 
     ASSERT_DOUBLE_EQ(3.0621974344648351, Vship_water.x());
     ASSERT_DOUBLE_EQ(4, Vship_water.y());
@@ -291,7 +291,7 @@ TEST_F(RudderForceModelTest, parser)
 
 TEST_F(RudderForceModelTest, force_and_torque)
 {
-    EnvironmentAndFrames env = get_environment_and_frames(get_wave_model());
+	const EnvironmentAndFrames env = get_environment_and_frames(get_wave_model());
     const RudderForceModel rudder(RudderForceModel::parse(test_data::rudder()), a.random<std::string>(), env);
     ASSERT_EQ("propeller+rudder", rudder.model_name());
     BodyStates states;
@@ -308,7 +308,7 @@ TEST_F(RudderForceModelTest, force_and_torque)
     commands["P/D"] = 1.2;
     commands["beta"] = PI/6;
 
-    const auto F = rudder.get_force(states, t, commands);
+    const auto F = rudder.get_force(states, t, env, commands);
     ASSERT_DOUBLE_EQ(2208573.9553180891, (double)F(0));
     ASSERT_DOUBLE_EQ(777997.67996840423, (double)F(1));
     ASSERT_DOUBLE_EQ(0, (double)F(2));

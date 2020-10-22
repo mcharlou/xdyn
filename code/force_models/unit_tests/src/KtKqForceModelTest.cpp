@@ -8,6 +8,7 @@
 #include "KtKqForceModel.hpp"
 #include "KtKqForceModelTest.hpp"
 #include "yaml_data.hpp"
+#include "BodyStates.hpp"
 
 #include "gmock/gmock.h"
 using ::testing::_;
@@ -71,9 +72,9 @@ TEST_F(KtKqForceModelTest, force)
     std::map<std::string,double> commands;
     commands["rpm"] = 5*(2*PI);
 
-    ASSERT_NEAR(306063.03332753148, w.get_force(states, a.random<double>(),commands)(0), EPS);
-    ASSERT_EQ(0, w.get_force(states, a.random<double>(),commands)(1));
-    ASSERT_EQ(0, w.get_force(states, a.random<double>(),commands)(2));
-    ASSERT_EQ(0, w.get_force(states, a.random<double>(),commands)(4));
-    ASSERT_EQ(0, w.get_force(states, a.random<double>(),commands)(5));
+    ASSERT_NEAR(306063.03332753148, w.get_force(states, a.random<double>(), env, commands)(0), EPS);
+    ASSERT_EQ(0, w.get_force(states, a.random<double>(), env, commands)(1));
+    ASSERT_EQ(0, w.get_force(states, a.random<double>(), env, commands)(2));
+    ASSERT_EQ(0, w.get_force(states, a.random<double>(), env, commands)(4));
+    ASSERT_EQ(0, w.get_force(states, a.random<double>(), env, commands)(5));
 }

@@ -8,24 +8,34 @@
 #ifndef ENVIRONMENTANDFRAMES_HPP_
 #define ENVIRONMENTANDFRAMES_HPP_
 
+#include <vector>
+#include <memory>
+
 #include "YamlRotation.hpp"
-#include "Body.hpp"
+//#include "Body.hpp"
 #include "StateMacros.hpp"
 #include "SurfaceElevationInterface.hpp"
+#include "WindModelInterface.hpp"
 #include <ssc/kinematics.hpp>
 
+//class BodyPtr;
 class Observer;
 
 struct EnvironmentAndFrames
 {
     EnvironmentAndFrames();
-    void feed(Observer& observer, double t, const std::vector<BodyPtr>& bodies, const StateType& state) const;
+    void feed(Observer& observer, double t/*, const std::vector<BodyPtr>& bodies, const StateType& state*/) const;
     SurfaceElevationPtr w;
+    WindModelPtr wind;
     ssc::kinematics::KinematicsPtr k;
     double rho;
     double nu;
     double g;
+    double air_density;
     YamlRotation rot;
 };
+
+//typedef std::shared_ptr<EnvironmentAndFrames> EnvironmentAndFramesPtr;
+//typedef std::shared_ptr<const EnvironmentAndFrames> ConstEnvironmentAndFramesPtr;
 
 #endif /* ENVIRONMENTANDFRAMES_HPP_ */

@@ -26,6 +26,7 @@ SET(SRC src/YamlAngle.cpp
         src/YamlSimServerInputs.cpp
         src/YamlGRPC.cpp
         src/YamlWaveOutput.cpp
+        src/YamlWindModelInput.cpp
         )
 
 # Using C++ 2011
@@ -38,6 +39,7 @@ endif()
 
 INCLUDE_DIRECTORIES(inc)
 INCLUDE_DIRECTORIES(${ssc_INCLUDE_DIRS})
+INCLUDE_DIRECTORIES(${hdb_interpolators_INCLUDE_DIRS})
 
 ADD_LIBRARY(${PROJECT_NAME} OBJECT ${SRC})
 

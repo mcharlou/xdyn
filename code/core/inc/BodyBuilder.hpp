@@ -8,9 +8,12 @@
 #ifndef BODYBUILDER_HPP_
 #define BODYBUILDER_HPP_
 
+#include <vector>
+
 #include "Body.hpp"
 #include "YamlRotation.hpp"
 #include "GeometricTypes3d.hpp"
+#include "ForceModel.hpp"
 
 struct YamlDynamics6x6Matrix;
 struct YamlAngle;
@@ -36,17 +39,39 @@ class BodyBuilder
         /** \brief Build a 'Body' object from YAML & STL data
          *  \returns New Body object
          */
-        BodyPtr build(const YamlBody& input, const VectorOfVectorOfPoints& mesh, const size_t idx, const double t0, const YamlRotation& convention, const double Tmax, const bool has_surface_forces = false) const;
+        BodyPtr build(const YamlBody& input, const VectorOfVectorOfPoints& mesh, const size_t idx, const double t0, const EnvironmentAndFrames& env) const;
 
         /** \details Only used for testing purposes when we don't want to go
          *           through the hassle of defining the inertia matrix & initial
-         *           positions
-         *  \returns New Body object
+         *           positions & when we want to build the forces separately
+         *  \returns New Body object, without any forces
          */
-        BodyPtr build(const std::string& name, const VectorOfVectorOfPoints& mesh, const size_t idx, const double t0, const YamlRotation& convention, const double Tmax, const bool has_surface_forces = false) const;
+        BodyPtr build(const std::string& name, const VectorOfVectorOfPoints& mesh, const size_t idx, const double t0, const bool has_surface_forces = false) const;
+
+        /** \details Only used for testing purposes when when we want to build
+         * 			 the forces separately
+		 *  \returns New Body object, without any forces
+		 */
+        BodyPtr build(const YamlBody& input, const VectorOfVectorOfPoints& mesh, const size_t idx, const double t0, const bool has_surface_forces = false) const;
+
+        /**  \brief Add the capacity to parse certain YAML inputs for forces
+          *  \details This method must not be called with any parameters: the
+          *  default parameter is only there so we can use boost::enable_if. This
+          *  allows us to use can_parse for several types derived from a few
+          *  base classes (WaveModelInterface, ForceModel...) & the compiler will
+          *  automagically choose the right version of can_parse.
+          *  \returns *this (so we can chain calls to can_parse)
+          *  \snippet simulator/unit_tests/src/SimulatorBuilderTest.cpp SimulatorBuilderTest can_parse_example
+          */
+        template <typename T> BodyBuilder& can_parse(typename boost::enable_if<boost::is_base_of<ForceModel,T> >::type* dummy = 0)
+        {
+            (void)dummy; // Ignore "unused variable" warning: we just need "dummy" for boost::enable_if
+            force_parsers.push_back(ForceModel::build_parser<T>());
+            return *this;
+        }
 
     private:
-        BodyBuilder(); //Disabled
+        BodyBuilder(); // Disabled
 
         void add_inertia(BodyStates& states, const YamlDynamics6x6Matrix& rigid_body_inertia, const YamlDynamics6x6Matrix& added_mass) const;
 
@@ -60,7 +85,13 @@ class BodyBuilder
          */
         void change_mesh_ref_frame(BodyStates& states, const VectorOfVectorOfPoints& mesh) const;
 
+        BodyStates get_initial_states(const YamlBody& input, const VectorOfVectorOfPoints& mesh, const double t0) const;
+        std::vector<ForcePtr> get_forces(const YamlBody& input, const std::string body_name, const EnvironmentAndFrames& env, const std::vector<ForceParser>& force_parsers) const;
+        ForcePtr parse_force(const YamlModel& model, const std::string body_name, const EnvironmentAndFrames& env, const std::vector<ForceParser>& force_parsers) const;
+        double get_max_history_length(const std::vector<ForcePtr>& forces) const;
+
         YamlRotation rotations; //!< Rotation convention (describes how we can build a rotation matrix from three angles)
+        std::vector<ForceParser> force_parsers;
 };
 
 bool isSymmetric(const Eigen::MatrixXd& m);

@@ -11,7 +11,7 @@
 #include <Eigen/Dense>
 
 #include <ssc/macros.hpp>
-#include TR1INC(memory)
+#include <memory>
 
 #include "TimestampedMatrix.hpp"
 
@@ -36,7 +36,9 @@ class HDBParser
         Eigen::Matrix<double,6,6> get_added_mass() const;
         Eigen::Matrix<double,6,6> get_added_mass(const double Tp //!< Period at which to interpolate the added mass
                                                 ) const; // const doesn't really mean anything here as the members are hidden inside a pimpl
+        double get_infinite_frequency_added_mass_coeff(const size_t i, const size_t j, std::function<double(double)>& K, double Tmin, double Tmax) const;
         virtual std::vector<double> get_radiation_damping_angular_frequencies() const;
+        virtual std::vector<double> get_added_mass_coeff(const size_t i, const size_t j) const;
         virtual std::vector<double> get_radiation_damping_coeff(const size_t i, const size_t j) const;
         std::array<std::vector<std::vector<double> >,6 > get_diffraction_module_tables() const;
         std::array<std::vector<std::vector<double> >,6 > get_diffraction_phase_tables() const;
@@ -56,7 +58,7 @@ class HDBParser
 
     private:
         class Impl;
-        TR1(shared_ptr)<Impl> pimpl;
+        std::shared_ptr<Impl> pimpl;
 };
 
 #endif /* HDBPARSER_HPP_ */

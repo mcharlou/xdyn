@@ -19,6 +19,10 @@ set(SRC src/WaveSpectralDensity.cpp
         src/SumOfWaveDirectionalSpreadings.cpp
         src/WaveDirectionalSpreading.cpp
         src/Stretching.cpp
+        src/WindMeanVelocityProfile.cpp
+        src/WindTurbulenceModel.cpp
+        src/NoWindTurbulence.cpp
+        src/UniformWindProfile.cpp
         )
 
 # Using C++ 2011

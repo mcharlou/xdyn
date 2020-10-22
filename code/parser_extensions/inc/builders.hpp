@@ -8,6 +8,7 @@
 #ifndef BUILDERS_HPP_
 #define BUILDERS_HPP_
 
+#include "ActualWindModel.hpp"
 #include "DefaultSurfaceElevation.hpp"
 #include "SurfaceElevationBuilder.hpp"
 #include "DiracDirectionalSpreading.hpp"
@@ -19,17 +20,28 @@
 #include "DiracSpectralDensity.hpp"
 #include "JonswapSpectrum.hpp"
 #include "PiersonMoskowitzSpectrum.hpp"
+#include "WindModelInterface.hpp"
+#include "WindModelBuilder.hpp"
+#include "DefaultWindModel.hpp"
+#include "WindMeanVelocityProfile.hpp"
+#include "WindTurbulenceModel.hpp"
+#include "UniformWindProfile.hpp"
+#include "NoWindTurbulence.hpp"
 
-typedef TR1(shared_ptr)<SurfaceElevationInterface> SurfaceElevationInterfacePtr;
-typedef TR1(shared_ptr)<WaveSpectralDensity> WaveSpectralDensityPtr;
-typedef TR1(shared_ptr)<WaveDirectionalSpreading> WaveDirectionalSpreadingPtr;
+typedef std::shared_ptr<SurfaceElevationInterface> SurfaceElevationInterfacePtr;
+typedef std::shared_ptr<WaveSpectralDensity> WaveSpectralDensityPtr;
+typedef std::shared_ptr<WaveDirectionalSpreading> WaveDirectionalSpreadingPtr;
+
+typedef std::shared_ptr<WindModelInterface> WindModelInterfacePtr;
+/*typedef std::shared_ptr<WindMeanVelocityProfile> WindMeanVelocityProfileePtr;
+typedef std::shared_ptr<WindTurbulenceModel> WindTurbulenceModelPtr;*/
 
 template <>
 class SurfaceElevationBuilder<DefaultSurfaceElevation> : public SurfaceElevationBuilderInterface
 {
     public:
-        SurfaceElevationBuilder(const TR1(shared_ptr)<std::vector<DirectionalSpreadingBuilderPtr> >& directional_spreading_parsers_,
-                                const TR1(shared_ptr)<std::vector<SpectrumBuilderPtr> >& spectrum_parsers_);
+        SurfaceElevationBuilder(const std::shared_ptr<std::vector<DirectionalSpreadingBuilderPtr> >& directional_spreading_parsers_,
+                                const std::shared_ptr<std::vector<SpectrumBuilderPtr> >& spectrum_parsers_);
         boost::optional<SurfaceElevationInterfacePtr> try_to_parse(const std::string& model, const std::string& yaml) const;
 };
 
@@ -40,8 +52,8 @@ template <>
 class SurfaceElevationBuilder<SurfaceElevationFromWaves> : public SurfaceElevationBuilderInterface
 {
     public:
-        SurfaceElevationBuilder(const TR1(shared_ptr)<std::vector<DirectionalSpreadingBuilderPtr> >& directional_spreading_parsers_,
-                                const TR1(shared_ptr)<std::vector<SpectrumBuilderPtr> >& spectrum_parsers_);
+        SurfaceElevationBuilder(const std::shared_ptr<std::vector<DirectionalSpreadingBuilderPtr> >& directional_spreading_parsers_,
+                                const std::shared_ptr<std::vector<SpectrumBuilderPtr> >& spectrum_parsers_);
         boost::optional<SurfaceElevationInterfacePtr> try_to_parse(const std::string& model, const std::string& yaml) const;
 
     private:
@@ -116,5 +128,49 @@ class DirectionalSpreadingBuilder<Cos2sDirectionalSpreading> : public Directiona
         DirectionalSpreadingBuilder() : DirectionalSpreadingBuilderInterface(){}
         boost::optional<WaveDirectionalSpreadingPtr> try_to_parse(const std::string& model, const std::string& yaml) const;
 };
+
+template <>
+class WindModelBuilder<DefaultWindModel> : public WindModelBuilderInterface
+{
+    public:
+        WindModelBuilder(const std::shared_ptr<std::vector<WindMeanVelocityProfileBuilderPtr> >& velocity_profile_parsers_,
+                                const std::shared_ptr<std::vector<WindTurbulenceModelBuilderPtr> >& turbulence_model_parsers_);
+        boost::optional<WindModelInterfacePtr> try_to_parse(const std::string& model, const std::string& yaml) const;
+};
+
+struct YamlWindProfile;
+struct YamlWindTurbulence;
+
+template <>
+class WindModelBuilder<ActualWindModel> : public WindModelBuilderInterface
+{
+    public:
+        WindModelBuilder(const std::shared_ptr<std::vector<WindMeanVelocityProfileBuilderPtr> >& velocity_profile_parsers_,
+                                const std::shared_ptr<std::vector<WindTurbulenceModelBuilderPtr> >& turbulence_model_parsers_);
+        boost::optional<WindModelInterfacePtr> try_to_parse(const std::string& model, const std::string& yaml) const;
+
+    private:
+        WindModelBuilder();
+        WindMeanVelocityProfilePtr parse_wind_velocity_profile(const YamlWindProfile& velocity_profile) const;
+        WindTurbulenceModelPtr parse_wind_turbulence_model(const YamlWindTurbulence& turbulence_model) const;
+};
+
+template <>
+class WindMeanVelocityProfileBuilder<UniformWindProfile> : public WindMeanVelocityProfileBuilderInterface
+{
+    public:
+	WindMeanVelocityProfileBuilder();
+        boost::optional<WindMeanVelocityProfilePtr> try_to_parse(const std::string& model, const std::string& yaml) const;
+};
+
+template <>
+class WindTurbulenceModelBuilder<NoWindTurbulence> : public WindTurbulenceModelBuilderInterface
+{
+    public:
+	WindTurbulenceModelBuilder();
+        boost::optional<WindTurbulenceModelPtr> try_to_parse(const std::string& model, const std::string& yaml) const;
+};
+
+
 
 #endif /* BUILDERS_HPP_ */

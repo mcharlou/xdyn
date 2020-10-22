@@ -19,9 +19,11 @@ struct XdynForCSCommandLineArguments
     std::string solver;
     double initial_timestep;
     bool catch_exceptions;
+    bool docker_localhost;
     short unsigned int port;
     bool verbose;
     bool show_help;
+    bool inline_yaml;
     bool show_websocket_debug_information;
 };
 

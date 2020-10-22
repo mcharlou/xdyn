@@ -19,6 +19,7 @@
 #include <boost/variant.hpp>
 
 #include <ssc/interpolation.hpp>
+#include <ssc/integrate.hpp>
 
 #include "hdb_parser_internal_data_structures.hpp"
 #include "InvalidInputException.hpp"
@@ -29,7 +30,7 @@
 class HDBParser::Impl
 {
     public:
-        Impl() : omega_rad(), tree(), M(), Br(), Tmin(0), diffraction_module(), diffraction_phase(), froude_krylov_module(), froude_krylov_phase()
+        Impl() : omega_rad(), tree(), M(), Ar(), Br(), Tmin(0), diffraction_module(), diffraction_phase(), froude_krylov_module(), froude_krylov_phase()
         {
         }
 
@@ -37,6 +38,7 @@ class HDBParser::Impl
         : omega_rad()
         , tree(hdb::parse(data))
         , M()
+        , Ar()
         , Br()
         , Tmin(0)
         , diffraction_module(get_diffraction_module())
@@ -54,6 +56,7 @@ class HDBParser::Impl
                 for (size_t j = 0 ; j < 6 ; ++j)
                 {
                     M[i][j] = ssc::interpolation::SplineVariableStep(x, get_Mij_for_each_Tp(Ma,i,j), allow_queries_outside_bounds=true);
+                    Ar[i][j] = get_Mij_for_each_Tp(Ma, i, j);
                     Br[i][j] = get_Mij_for_each_Tp(B_r, i, j);
                 }
             }
@@ -317,6 +320,26 @@ class HDBParser::Impl
             return get_added_mass(Tmin);
         }
 
+        double get_infinite_frequency_added_mass_coeff(const size_t i, const size_t j, std::function<double(double)>& K, double Tmin, double Tmax) const
+        {
+        	const auto v = Ar[i][j];
+        	std::vector<double> A(v.rbegin(), v.rend());
+        	double Ainf=0;
+        	for(size_t k=0; k<omega_rad.size(); k++)
+        	{
+        		const auto K_sin = [K,this,k](const double t){return K(t)*sin(omega_rad[k]*t);};
+        		double I = ssc::integrate::Simpson(K_sin).integrate_f(Tmin, Tmax);
+        		Ainf += A[k] + I/omega_rad[k];
+        	}
+        	return Ainf/(double)omega_rad.size();
+        }
+
+        std::vector<double> get_added_mass_coeff(const size_t i, const size_t j) const
+		{
+        	const auto v = Ar[i][j];
+        	return std::vector<double>(v.rbegin(), v.rend());
+		}
+
         std::vector<double> get_radiation_damping_coeff(const size_t i, const size_t j) const
         {
             const auto v = Br[i][j];
@@ -422,6 +445,7 @@ class HDBParser::Impl
 
         hdb::AST tree;
         std::array<std::array<ssc::interpolation::SplineVariableStep,6>,6> M;
+        std::array<std::array<std::vector<double>,6>,6> Ar;
         std::array<std::array<std::vector<double>,6>,6> Br;
         double Tmin;
         boost::variant<RAOData,std::string> diffraction_module;
@@ -486,10 +510,20 @@ Eigen::Matrix<double,6,6> HDBParser::get_added_mass(const double Tp //!< Period 
     return pimpl->get_added_mass(Tp);
 }
 
+double HDBParser::get_infinite_frequency_added_mass_coeff(const size_t i, const size_t j, std::function<double(double)>& K, double Tmin, double Tmax) const
+{
+	return pimpl->get_infinite_frequency_added_mass_coeff(i, j, K, Tmin, Tmax);
+}
+
 std::vector<double> HDBParser::get_radiation_damping_angular_frequencies() const
 {
     return pimpl->omega_rad;
 
+}
+
+std::vector<double> HDBParser::get_added_mass_coeff(const size_t i, const size_t j) const
+{
+    return pimpl->get_added_mass_coeff(i, j);
 }
 
 std::vector<double> HDBParser::get_radiation_damping_coeff(const size_t i, const size_t j) const

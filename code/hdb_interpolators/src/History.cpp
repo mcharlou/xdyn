@@ -8,6 +8,7 @@
 #include "History.hpp"
 #include "InternalErrorException.hpp"
 #include <cmath>
+#include <algorithm>
 #include <cstdint>
 #include <iterator>
 #include <sstream>
@@ -65,7 +66,8 @@ double History::operator()(double tau //!< How far back in history do we need to
     if (std::abs(tau-Tmax)<eps) tau = Tmax;
     if (tau>Tmax)
     {
-        return 0;
+    	//return 0;
+    	tau = Tmax;
     }
     if (tau<0)
     {
@@ -84,10 +86,23 @@ double History::get_current_time() const
     return L.empty() ? oldest_recorded_instant : L.back().first;
 }
 
+double History::get_last_time_step() const
+{
+	if(L.size()>=2)
+	{
+		return L.rbegin()->first - (L.rbegin()+1)->first;
+	}
+	else
+	{
+		THROW(__PRETTY_FUNCTION__, InternalErrorException,"Cannot retrieve last time step because there isn't enough records");
+		return 0.;
+	}
+}
+
 double History::get_value(const double tau) const
 {
     const double t = get_current_time();
-    const auto idx = find_braketing_position(t-tau);
+    const auto idx = find_bracketing_position(t-tau);
     return interpolate_value_in_interval(idx, t-tau);
 }
 
@@ -122,7 +137,7 @@ void History::throw_if_already_added(const size_t idx, const double t, const dou
     }
 }
 
-size_t History::find_braketing_position(const double t) const
+size_t History::find_bracketing_position(const double t) const
 {
     if (L.empty())return 0;
     if (L.back().first < t)           return L.size();
@@ -167,7 +182,7 @@ void History::shift_oldest_recorded_instant_if_necessary()
     {
         oldest_recorded_instant = get_current_time()-Tmax;
         const double vmin = interpolate_value_in_interval(1, oldest_recorded_instant);
-        const size_t idx = find_braketing_position(oldest_recorded_instant);
+        const size_t idx = find_bracketing_position(oldest_recorded_instant);
         L.erase(L.begin(), L.begin() + (long) (idx));
         if (not(almost_equal(L.front().first, oldest_recorded_instant,32)))
         {
@@ -178,7 +193,7 @@ void History::shift_oldest_recorded_instant_if_necessary()
 
 void History::add_value_to_history(const double t, const double val)
 {
-    const size_t idx = find_braketing_position(t);
+    const size_t idx = find_bracketing_position(t);
     if ((idx != L.size()) and (almost_equal(L[idx].first, t)))
     {
         L[idx] = std::make_pair(t, val);
@@ -240,6 +255,11 @@ double History::get_duration() const
     return L.back().first - L.front().first;
 }
 
+double History::integrate_over_duration() const
+{
+	return integrate(0);
+}
+
 std::ostream& operator<<(std::ostream& os, const History& h)
 {
     os << "[";
@@ -284,12 +304,13 @@ double History::average(double T) const
     check_if_average_can_be_retrieved(T);
     T = std::min(T, get_duration());
     const double t = get_current_time() - T;
-    const size_t idx = find_braketing_position(t);
+    const size_t idx = find_bracketing_position(t);
     const double first_value = interpolate_value_in_interval(idx, t);
     const double integral_of_first_interval = trapeze(t, first_value, L.at(idx).first, L.at(idx).second);
     const double integral_from_t_to_now = integrate(idx);
     return  (T!=0) ? (integral_of_first_interval + integral_from_t_to_now)/T : L.back().second;
 }
+
 
 std::pair<double,double> History::operator[](const int index) const
 {
@@ -351,4 +372,9 @@ std::vector<double> History::get_dates(const double tmax) const
         }
     }
     return ret;
+}
+
+void History::set_Tmax(const double Tmax_)
+{
+	Tmax = Tmax_;
 }

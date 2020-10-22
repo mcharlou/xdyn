@@ -14,7 +14,8 @@ XdynCommandLineArguments::XdynCommandLineArguments() : yaml_filenames(),
                          initial_timestep(0),
                          tstart(0),
                          tend(0),
-                         catch_exceptions(false)
+                         catch_exceptions(false),
+						 verbose(false)
 {
 }
 

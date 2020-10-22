@@ -36,5 +36,6 @@ YamlSimulatorInput SimulatorYamlParser::parse() const
     node["rotations convention"] >> ret.rotations;
     PARSE_OPTIONAL_KEY("environment models", ret.environment);
     PARSE_OPTIONAL_KEY("commands", ret.commands);
+    PARSE_OPTIONAL_KEY("controllers", ret.controllers)
     return ret;
 }

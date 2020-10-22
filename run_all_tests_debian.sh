@@ -5,8 +5,8 @@ docker run $TERMINAL \
     --security-opt seccomp=unconfined \
     --rm \
     -u $( id -u $USER ):$( id -g $USER ) \
-    -v $(pwd)/build_deb9:/build \
+    -v $(pwd)/build_deb10_gcc8_debug:/build \
     -w /build \
     -t \
-    sirehna/base-image-debian9-gcc6-xdyn \
+    debian10_gcc8_zmq_base \
     /bin/bash -c "export LD_LIBRARY_PATH=/build; ./run_all_tests `echo $*`"

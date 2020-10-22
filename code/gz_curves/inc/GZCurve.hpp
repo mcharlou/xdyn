@@ -13,7 +13,7 @@
 
 #include <ssc/macros/tr1_macros.hpp>
 
-#include TR1INC(memory)
+#include <memory>
 
 #include "GZTypes.hpp"
 
@@ -34,7 +34,7 @@ namespace GZ
         private:
             Curve();
             struct Impl;
-            TR1(shared_ptr)<Impl> pimpl;
+            std::shared_ptr<Impl> pimpl;
             double theta_eq;
     };
 }

@@ -25,18 +25,20 @@ class FastHydrostaticForceModel : public ImmersedSurfaceForceModel
                                   const BodyStates& states,
                                   const double t
                                  ) const;
-        std::string get_name() const;
         static std::string model_name();
-        double gz() const;
+
 
     protected:
         FastHydrostaticForceModel(const std::string& force_name, const std::string& body_name, const EnvironmentAndFrames& env);
+        //void update_gz(const EnvironmentAndFrames& env);
 
     private:
         FastHydrostaticForceModel();
-        void extra_observations(Observer& observer) const;
+        //void extra_observations(Observer& observer) const;
         virtual EPoint get_application_point(const FacetIterator& that_facet, const BodyStates& states, const double zG) const;
         double pe(const BodyStates& states, const std::vector<double>& x, const EnvironmentAndFrames& env) const;
+
+        //double gz;
 };
 
 #endif /* FASTHYDROSTATICFORCEMODEL_HPP_ */

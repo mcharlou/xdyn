@@ -26,7 +26,7 @@ struct BodyStates;
 struct YamlRotation;
 
 class ControllableForceModel;
-typedef TR1(shared_ptr)<ControllableForceModel> ControllableForcePtr;
+typedef std::shared_ptr<ControllableForceModel> ControllableForcePtr;
 typedef std::vector<ControllableForcePtr> ListOfControlledForces;
 typedef std::function<boost::optional<ControllableForcePtr>(const YamlModel&, const std::string&, const EnvironmentAndFrames&)> ControllableForceParser;
 
@@ -41,18 +41,18 @@ class Observer;
  *  \section ex2 Expected output
  *  \snippet model_wrappers/unit_tests/src/ControllableForceModelTest.cpp ControllableForceModelTest expected output
  */
-class ControllableForceModel
+class ControllableForceModel : public ForceModel
 {
     public:
         ControllableForceModel(const std::string& name, const std::vector<std::string>& commands, const YamlPosition& internal_frame, const std::string& body_name_, const EnvironmentAndFrames& env);
         virtual ~ControllableForceModel();
-        ssc::kinematics::Wrench operator()(const BodyStates& states, const double t, ssc::data_source::DataSource& command_listener, const ssc::kinematics::KinematicsPtr& k, const ssc::kinematics::Point& G);
+        ssc::kinematics::Wrench operator()(const BodyStates& states, const double t, const ssc::kinematics::KinematicsPtr& k, ssc::data_source::DataSource& command_listener);
         virtual ssc::kinematics::Vector6d get_force(const BodyStates& states, const double t, const std::map<std::string,double>& commands) const = 0;
-        std::string get_name() const;
-        virtual double get_Tmax() const; // Can be overloaded if model needs access to History (not a problem, just has to say how much history to keep)
-        std::string get_body_name() const;
+        //std::string get_name() const;
+        //virtual double get_Tmax() const; // Can be overloaded if model needs access to History (not a problem, just has to say how much history to keep)
+        //std::string get_body_name() const;
 
-        template <typename ControllableForceType>
+        /*template <typename ControllableForceType>
         static ControllableForceParser build_parser()
         {
             auto parser = [](const YamlModel& yaml, const std::string& body_name, const EnvironmentAndFrames& env) -> boost::optional<ControllableForcePtr>
@@ -80,25 +80,27 @@ class ControllableForceModel
                               return ret;
                           };
             return parser;
-        }
+        }*/
 
-        void feed(Observer& observer, ssc::kinematics::KinematicsPtr& k, const ssc::kinematics::Point& G) const;
+        //virtual void feed(Observer& observer, ssc::kinematics::KinematicsPtr& k, const ssc::kinematics::Point& G) const;
+        //virtual void full_update(const BodyStates& body, const ssc::kinematics::KinematicsPtr kinematics);
 
     protected:
-        virtual void extra_observations(Observer& observer) const;
-        EnvironmentAndFrames env;
+        //virtual void extra_observations(Observer& observer) const;
+
+        //EnvironmentAndFrames env;
         std::vector<std::string> commands;
 
     private:
         ControllableForceModel(); // Deactivated
-        double get_command(const std::string& command_name, ssc::data_source::DataSource& command_listener, const double t) const;
+        double get_command(const std::string& command_name, ssc::data_source::DataSource& command_listener) const;
         std::map<std::string,double> get_commands(ssc::data_source::DataSource& command_listener, const double t) const;
 
-        std::string name;
+        /*std::string name;
         std::string body_name;
         YamlPosition position_of_frame;
         ssc::kinematics::Wrench latest_force_in_body_frame;
-        ssc::kinematics::Transform from_internal_frame_to_a_known_frame;
+        ssc::kinematics::Transform from_internal_frame_to_a_known_frame;*/
 };
 
 #endif /* CONTROLLABLEFORCEMODEL_HPP_ */

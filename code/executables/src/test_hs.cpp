@@ -47,11 +47,11 @@ BodyPtr get_body(const std::string& name, const VectorOfVectorOfPoints& points)
     rot.convention.push_back("y'");
     rot.convention.push_back("x''");
     rot.order_by = "angle";
-    return BodyBuilder(rot).build(name, points, 0, 0, rot, 0);
+    return BodyBuilder(rot).build(name, points, 0, 0);
 }
 
-TR1(shared_ptr)<WaveModel> get_wave_model();
-TR1(shared_ptr)<WaveModel> get_wave_model()
+std::shared_ptr<WaveModel> get_wave_model();
+std::shared_ptr<WaveModel> get_wave_model()
 {
     const double psi0 = PI/4;
     const double Hs = 3;
@@ -66,7 +66,7 @@ TR1(shared_ptr)<WaveModel> get_wave_model()
     const Stretching ss(ys);
     const DiscreteDirectionalWaveSpectrum A = discretize(DiracSpectralDensity(omega0, Hs), DiracDirectionalSpreading(psi0), omega_min, omega_max, nfreq, ss);
     int random_seed = 0;
-    return TR1(shared_ptr)<WaveModel>(new Airy(A, random_seed));
+    return std::shared_ptr<WaveModel>(new Airy(A, random_seed));
 }
 
 EnvironmentAndFrames get_env();
@@ -79,27 +79,29 @@ EnvironmentAndFrames get_env()
     const ssc::kinematics::Point G("NED",0,2,2./3.);
     env.k->add(ssc::kinematics::Transform(ssc::kinematics::Point("NED"), "mesh(" BODY ")"));
     env.k->add(ssc::kinematics::Transform(ssc::kinematics::Point("NED"), BODY));
-    TR1(shared_ptr)<ssc::kinematics::PointMatrix> mesh;
+    std::shared_ptr<ssc::kinematics::PointMatrix> mesh;
     //env.w = SurfaceElevationPtr(new DefaultSurfaceElevation(0, mesh));
     env.w = SurfaceElevationPtr(new SurfaceElevationFromWaves(get_wave_model()));
     return env;
 }
 
-void test(const ForceModel& F, const EnvironmentAndFrames& env, const size_t n);
-void test(const ForceModel& F, const EnvironmentAndFrames& env, size_t n)
+void test(ForceModel& F, const EnvironmentAndFrames& env, ssc::data_source::DataSource& ds, const size_t n);
+void test(ForceModel& F, const EnvironmentAndFrames& env, ssc::data_source::DataSource& ds, size_t n)
 {
     BodyPtr body = get_body(BODY, test_ship());
     const double t = 0;
     body->update_intersection_with_free_surface(env, t);
     ssc::kinematics::Wrench Fhs;
-    for (size_t i = 0 ; i < n ; ++i) F(body->get_states(), t);
+    for (size_t i = 0 ; i < n ; ++i) F.operator()(body->get_states(), t, env, ds);
 }
 
 int main(int argc, char* argv[])
 {
     const size_t n = argc>1 ? (size_t)atoi(argv[1]) : N;
-    auto env = get_env();
-    test(FroudeKrylovForceModel(BODY, env), env, n);
+    const EnvironmentAndFrames env = get_env();
+    ssc::data_source::DataSource ds;
+    auto force_model = FroudeKrylovForceModel(BODY, env);
+    test(force_model, env, ds, n);
     //test(FastHydrostaticForceModel(env), env, N);
     return 0;
 }

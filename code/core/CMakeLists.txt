@@ -12,19 +12,24 @@ set(SRC src/update_kinematics.cpp
         src/BodyStates.cpp
         src/BodyBuilder.cpp
         src/EnvironmentAndFrames.cpp
-        src/ControllableForceModel.cpp
         src/ForceModel.cpp
+        src/ForceModelAtG.cpp
+        src/ForceModelAtH.cpp
         src/SurfaceElevationFromWaves.cpp
+        src/ActualWindModel.cpp
         src/SurfaceElevationInterface.cpp
+        src/WindModelInterface.cpp
         src/SurfaceForceModel.cpp
         src/ImmersedSurfaceForceModel.cpp
         src/EmergedSurfaceForceModel.cpp
         src/yaml2eigen.cpp
         src/DefaultSurfaceElevation.cpp
+        src/DefaultWindModel.cpp
         src/BodyStates.cpp
         src/Observer.cpp
         src/BlockedDOF.cpp
         src/State.cpp
+        src/VelocityMovingAverage.cpp
         )
 
 # Using C++ 2011
@@ -46,6 +51,7 @@ include_directories(${ds_integration_INCLUDE_DIRS})
 include_directories(${yaml_parser_INCLUDE_DIRS})
 include_directories(${environment_models_INCLUDE_DIRS})
 include_directories(${parser_extensions_INCLUDE_DIRS})
+include_directories(${controllers_INCLUDE_DIRS})
 include_directories(${mesh_INCLUDE_DIRS})
 include_directories(${hdb_interpolators_INCLUDE_DIRS})
 include_directories(SYSTEM ${YAML_CPP_INCLUDE_DIRS})

@@ -35,17 +35,17 @@ SimpleHeadingKeepingController::Yaml SimpleHeadingKeepingController::parse(const
     return ret;
 }
 
-SimpleHeadingKeepingController::SimpleHeadingKeepingController(const Yaml& input, const std::string& body_name_, const EnvironmentAndFrames& env_) :
-        ControllableForceModel(input.name, {"psi_co"}, YamlPosition(YamlCoordinates(),YamlAngle(), body_name_), body_name_, env_),
+SimpleHeadingKeepingController::SimpleHeadingKeepingController(const Yaml& input, const std::string& body_name, const EnvironmentAndFrames&) :
+        ForceModel(input.name, body_name, {"psi_co"}),
         ksi(input.ksi),
         omega0(2*PI/input.Tp),
         rotation_convention("angle", {"z","y'","x''"})
 {
 }
 
-ssc::kinematics::Vector6d SimpleHeadingKeepingController::get_force(const BodyStates& states, const double, const std::map<std::string,double>& commands) const
+Vector6d SimpleHeadingKeepingController::get_force(const BodyStates& states, const double, const EnvironmentAndFrames&, const std::map<std::string,double>& commands) const
 {
-    ssc::kinematics::Vector6d ret = ssc::kinematics::Vector6d::Zero();
+    Vector6d ret = Vector6d::Zero();
 
     const auto angles = states.get_angles(rotation_convention);
     const double delta_psi = commands.at("psi_co") - angles.psi;

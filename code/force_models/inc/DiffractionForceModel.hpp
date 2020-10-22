@@ -28,14 +28,14 @@ class DiffractionForceModel : public ForceModel
         typedef YamlDiffraction Input;
         DiffractionForceModel(const Input& data, const std::string& body_name, const EnvironmentAndFrames& env);
         DiffractionForceModel(const Input& data, const std::string& body_name, const EnvironmentAndFrames& env, const std::string& hdb_file_contents);
-        ssc::kinematics::Wrench operator()(const BodyStates& states, const double t) const;
+        Vector6d get_force(const BodyStates& states, const double t, const EnvironmentAndFrames& env, const std::map<std::string,double>& commands) const override;
         static Input parse(const std::string& yaml);
         static std::string model_name();
 
     private:
         DiffractionForceModel();
         class Impl;
-        TR1(shared_ptr)<Impl> pimpl;
+        std::shared_ptr<Impl> pimpl;
 
 };
 

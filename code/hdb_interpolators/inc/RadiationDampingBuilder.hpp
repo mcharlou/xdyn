@@ -46,15 +46,33 @@ class RadiationDampingBuilder
                 const double omega_min,
                 double omega_max
                 ) const;
+
+        std::function<double(double)> build_sin_transform(
+		const std::function<double(double)>& K,
+		const std::vector<double>& omegas,
+		const double eps,
+		const double tau_min,
+		double tau_max
+		) const;
+
         /**  \brief Computes the convolution of a function with state history, over a certain time
           *  \returns \f$\int_0^T h(t-\tau)*f(\tau) d\tau\f$
           *  \snippet hdb_interpolators/unit_tests/src/RadiationDampingBuilderTest.cpp RadiationDampingBuilderTest method_example
           */
-        double convolution(const History& h, //!< State history
+        double convolution(const std::function<double(double)>& h, //!< State history
                            const std::function<double(double)>& f, //!< Function to convolute with
                            const double Tmin, //!< Beginning of the convolution (because retardation function may not be defined for T=0)
                            const double Tmax  //!< End of the convolution
                            ) const;
+
+        /**  \brief Computes the intergal of a function over a certain time, using the convolution method
+         *  \returns \f$\int_Tmin^Tmax f(\tau) d\tau\f$
+         */
+        double integral(const std::function<double(double)>& f, //!< Function to integrate
+						const double Tmin, //!< Beginning of the integral
+						const double Tmax  //!< End of the integral
+        ) const;
+
 
         /**  \brief Build a vector of n regularly incremented doubles from xmin to xmax. First value is xmin last is xmax.
           */

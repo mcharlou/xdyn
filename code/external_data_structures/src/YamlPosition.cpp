@@ -16,8 +16,19 @@ YamlPosition::YamlPosition(const YamlCoordinates& c, const YamlAngle& a, const s
         coordinates(c),
         angle(a),
         frame(f)
-{
-}
+{}
+
+YamlPosition::YamlPosition(const YamlCoordinates& c, const std::string& f):
+		coordinates(c),
+		angle(),
+		frame(f)
+{}
+
+YamlPosition::YamlPosition(const ssc::kinematics::Point point):
+		coordinates(point.x(),point.y(),point.z()),
+		angle(),
+		frame(point.get_frame())
+{}
 
 std::ostream& operator<<(std::ostream& os, const YamlPosition& w)
 {

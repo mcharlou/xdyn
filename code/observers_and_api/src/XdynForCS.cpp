@@ -19,13 +19,19 @@ SimServer::SimServer(const std::string& yaml_model,
 {
 }
 
-
 std::vector<YamlState> SimServer::play_one_step(const std::string& raw_yaml)
 {
     SimServerInputs simstepperinfo = parse_SimServerInputs(raw_yaml, builder.Tmax);
-    if (simstepperinfo.Dt <= 0)
+    if(simstepperinfo.request == Request::None)
     {
-        THROW(__PRETTY_FUNCTION__, InvalidInputException, "Dt should be greater than 0 but got Dt = " << simstepperinfo.Dt);
+    	if (simstepperinfo.Dt <= 0)
+    	{
+    		THROW(__PRETTY_FUNCTION__, InvalidInputException, "Dt should be greater than 0 but got Dt = " << simstepperinfo.Dt);
+    	}
+    	return stepper.step(simstepperinfo, simstepperinfo.Dt);
     }
-    return stepper.step(simstepperinfo, simstepperinfo.Dt);
+    else
+    {
+    	return stepper.handle_request(simstepperinfo);
+    }
 }

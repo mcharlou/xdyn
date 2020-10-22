@@ -7,7 +7,7 @@ FILE(GLOB SRC src/generate_body_for_tests.cpp
               src/BodyBuilderTest.cpp
               src/SurfaceElevationFromWavesTest.cpp
               src/BodyTest.cpp
-              src/ControllableForceModelTest.cpp
+              src/ForceModelTest.cpp
               src/random_kinematics.cpp
               src/BlockedDOFTest.cpp
               )
@@ -23,6 +23,7 @@ INCLUDE_DIRECTORIES(SYSTEM ${GMOCK_INCLUDE_DIRS})
 INCLUDE_DIRECTORIES(SYSTEM ${eigen_INCLUDE_DIRS})
 INCLUDE_DIRECTORIES(${binary_stl_data_INCLUDE_DIRS})
 INCLUDE_DIRECTORIES(${parser_extensions_INCLUDE_DIRS}/../unit_tests/inc)
+INCLUDE_DIRECTORIES(${force_models_INCLUDE_DIRS})
 
 # Using C++ 2011
 # The -std=c++0x option causes g++ to go into 'strict ANSI' mode so it doesn't declare non-standard functions

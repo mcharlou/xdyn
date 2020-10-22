@@ -1,5 +1,5 @@
 /*
- * ControllableForceModelTest.cpp
+ * ForceModelTest.cpp
  *
  *  Created on: May 11, 2015
  *      Author: cady
@@ -7,12 +7,14 @@
 
 #include <ssc/data_source.hpp>
 
-#include "ControllableForceModelTest.hpp"
-#include "ControllableForceModel.hpp"
+#include "BodyStates.hpp"
+#include "ForceModel.hpp"
 #include "random_kinematics.hpp"
 
-EnvironmentAndFrames get_env(ssc::random_data_generator::DataGenerator& a);
-EnvironmentAndFrames get_env(ssc::random_data_generator::DataGenerator& a)
+#include "ForceModelTest.hpp"
+
+const EnvironmentAndFrames get_env(ssc::random_data_generator::DataGenerator& a);
+const EnvironmentAndFrames get_env(ssc::random_data_generator::DataGenerator& a)
 {
     EnvironmentAndFrames env;
     env.k = ssc::kinematics::KinematicsPtr(new ssc::kinematics::Kinematics());
@@ -22,16 +24,16 @@ EnvironmentAndFrames get_env(ssc::random_data_generator::DataGenerator& a)
     return env;
 }
 
-class RandomControllableForce : public ControllableForceModel
+class RandomForce : public ForceModel
 {
     public:
 
-        RandomControllableForce(ssc::random_data_generator::DataGenerator& a_)
-             : ControllableForceModel("mock", std::vector<std::string>(), YamlPosition(), "body", get_env(a_)), a(a_)
+		RandomForce(ssc::random_data_generator::DataGenerator& a_)
+             : ForceModel("mock", "body", get_env(a_), YamlPosition()), a(a_)
         {
         }
 
-        ssc::kinematics::Vector6d get_force(const BodyStates& states, const double t, const std::map<std::string,double>& commands) const
+        ssc::kinematics::Vector6d get_force(const BodyStates& states, const double t, const EnvironmentAndFrames&, const std::map<std::string,double>& commands) const
         {
             ssc::kinematics::Vector6d ret;
             ret(0) = a.random<double>().between(2,3);
@@ -43,7 +45,7 @@ class RandomControllableForce : public ControllableForceModel
             return ret;
         }
 
-        ssc::kinematics::KinematicsPtr get_k() const
+        ssc::kinematics::KinematicsPtr get_k(const EnvironmentAndFrames& env) const
         {
             return env.k;
         }
@@ -52,35 +54,36 @@ class RandomControllableForce : public ControllableForceModel
         ssc::random_data_generator::DataGenerator a;
 };
 
-ControllableForceModelTest::ControllableForceModelTest() : a(ssc::random_data_generator::DataGenerator(545121))
+ForceModelTest::ForceModelTest() : a(ssc::random_data_generator::DataGenerator(545121))
 {
 }
 
-ControllableForceModelTest::~ControllableForceModelTest()
+ForceModelTest::~ForceModelTest()
 {
 }
 
-void ControllableForceModelTest::SetUp()
+void ForceModelTest::SetUp()
 {
 }
 
-void ControllableForceModelTest::TearDown()
+void ForceModelTest::TearDown()
 {
 }
 
-TEST_F(ControllableForceModelTest, bug_2838)
+TEST_F(ForceModelTest, bug_2838)
 {
-//! [ControllableForceModelTest example]
+//! [ForceModelTest example]
     ssc::data_source::DataSource command_listener;
-    RandomControllableForce F(a);
+    auto env = get_env(a);
+    RandomForce F(a);
     BodyStates states;
     states.G = ssc::kinematics::Point("body", 1, 2, 3);
     const double t = a.random<double>();
 
 
-    auto w = F(states, t, command_listener, F.get_k(), states.G);
-//! [ControllableForceModelTest example]
-//! [ControllableForceModelTest expected output]
+    auto w = F(states, t, env, command_listener);
+//! [ForceModelTest example]
+//! [ForceModelTest expected output]
     ASSERT_EQ("body", w.get_frame());
     ASSERT_NEAR((states.G - w.get_point()).norm(), 0, 1E-10);
 //! [ControllableForceModelTest expected output]

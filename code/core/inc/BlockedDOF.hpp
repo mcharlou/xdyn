@@ -11,14 +11,13 @@
 #include <map>
 #include <string>
 #include <vector>
+#include <memory>
 
 #include <Eigen/Dense>
 
 #include <ssc/interpolation.hpp>
 #include <ssc/kinematics.hpp>
 #include <ssc/macros/tr1_macros.hpp>
-
-#include TR1INC(memory)
 
 #include "YamlBody.hpp"
 #include "StateMacros.hpp"
@@ -35,7 +34,7 @@ class BlockedDOF
 
     private:
         struct Impl;
-        TR1(shared_ptr)<Impl> pimpl;
+        std::shared_ptr<Impl> pimpl;
 
 };
 

@@ -1,7 +1,8 @@
-#include "ConfBuilder.hpp"
+
 #include "simulator_api.hpp"
+#include "Sim.hpp"
 
-
+#include "ConfBuilder.hpp"
 
 ConfBuilder::ConfBuilder(const std::string& yaml)
     : sim(get_system(yaml, 0))

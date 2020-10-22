@@ -6,14 +6,17 @@
  */
 
 #include "Body.hpp"
-#include "FastHydrostaticForceModel.hpp"
 #include "calculate_gz.hpp"
 #include "mesh_manipulations.hpp"
 #include "Observer.hpp"
 
-std::string FastHydrostaticForceModel::model_name(){return "non-linear hydrostatic (fast)";}
+#include "FastHydrostaticForceModel.hpp"
 
-FastHydrostaticForceModel::FastHydrostaticForceModel(const std::string& body_name_, const EnvironmentAndFrames& env_) : ImmersedSurfaceForceModel(model_name(), body_name_, env_)
+std::string FastHydrostaticForceModel::model_name() {return "non-linear hydrostatic (fast)";}
+
+FastHydrostaticForceModel::FastHydrostaticForceModel(const std::string& body_name, const EnvironmentAndFrames& env) :
+		ImmersedSurfaceForceModel(FastHydrostaticForceModel::model_name(), body_name, env)/*,
+		gz(0.)*/
 {
     if (env.w.use_count()==0)
     {
@@ -21,19 +24,15 @@ FastHydrostaticForceModel::FastHydrostaticForceModel(const std::string& body_nam
     }
 }
 
-FastHydrostaticForceModel::FastHydrostaticForceModel(const std::string& force_name_, const std::string& body_name_, const EnvironmentAndFrames& env_) : ImmersedSurfaceForceModel(force_name_, body_name_, env_)
-{
-}
+FastHydrostaticForceModel::FastHydrostaticForceModel(const std::string& force_name_, const std::string& body_name, const EnvironmentAndFrames& env) :
+		ImmersedSurfaceForceModel(force_name_, body_name, env)/*,
+		gz(0.)*/
+{}
 
-double FastHydrostaticForceModel::gz() const
+/*void FastHydrostaticForceModel::update_gz(const EnvironmentAndFrames& env)
 {
-    return calculate_gz(env.k->get("NED", get_body_name()), get_force_in_ned_frame());
-}
-
-std::string FastHydrostaticForceModel::get_name() const
-{
-    return this->model_name();
-}
+    gz = calculate_gz(env.k->get("NED", get_body_name()), get_force_in_ned_frame());
+}*/
 
 EPoint FastHydrostaticForceModel::get_application_point(const FacetIterator& that_facet, const BodyStates&, const double) const
 {
@@ -69,7 +68,7 @@ double FastHydrostaticForceModel::pe(const BodyStates& states, const std::vector
     return -env.rho*env.g*immersed_volume*zC;
 }
 
-void FastHydrostaticForceModel::extra_observations(Observer& observer) const
+/*void FastHydrostaticForceModel::extra_observations(Observer& observer) const
 {
-    observer.write(gz(),DataAddressing(std::vector<std::string>{"efforts",get_body_name(),get_name(),get_body_name(),"GZ"},std::string("GZ(")+get_name()+","+get_body_name()+")"));
-}
+    observer.write(gz,DataAddressing({"efforts",get_body_name(),get_name(),get_body_name(),"extra observations","GZ"},std::string("GZ(")+get_name()+","+get_body_name()+")"));
+}*/

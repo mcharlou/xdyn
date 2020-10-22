@@ -6,6 +6,7 @@
  */
 
 #include <set>
+#include <vector>
 
 #include "make_sim_for_GZ.hpp"
 #include "ResultantForceComputerTest.hpp"
@@ -45,9 +46,9 @@ TEST_F(ResultantForceComputerTest, sim_only_contains_gravity_and_hydrostatic_for
     sim.reset_history();
     const auto s = GZ::make_sim(test_data::stable_cube_example(), test_data::cube());
 
-    std::map<std::string,std::vector<ForcePtr> > forces = s.get_forces();
+    std::vector<ForcePtr> forces = s.get_bodies().front()->get_forces();
     std::set<std::string> force_models;
-    for (auto force:forces["cube"])
+    for (auto force:forces)
     {
         force_models.insert(force->get_name());
     }

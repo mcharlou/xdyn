@@ -13,7 +13,7 @@
 #include <string>
 #include <vector>
 #include <ssc/macros.hpp>
-#include TR1INC(memory)
+#include <memory>
 
 #include "DiscreteDirectionalWaveSpectrum.hpp"
 
@@ -43,8 +43,16 @@ class Observer
                 const T& val,
                 const DataAddressing& address)
         {
-            initialize[address.name] = get_initializer(val, address);
-            serialize[address.name] = get_serializer(val, address);
+        	initialize[address.name] = get_initializer(val, address);
+        	serialize[address.name] = get_serializer(val, address);
+        }
+
+        void write(
+        		const double val,
+				const DataAddressing& address)
+        {
+        	initialize[address.name] = get_initializer(val, address);
+        	serialize[address.name] = get_serializer(val, address);
         }
 
         virtual void write_before_simulation(const std::vector<FlatDiscreteDirectionalWaveSpectrum>& val, const DataAddressing& address);
@@ -75,6 +83,6 @@ class Observer
         std::map<std::string, std::function<void()> > initialize;
 };
 
-typedef TR1(shared_ptr)<Observer> ObserverPtr;
+typedef std::shared_ptr<Observer> ObserverPtr;
 
 #endif  /* OBSERVER_HPP_ */

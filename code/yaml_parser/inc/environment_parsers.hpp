@@ -8,12 +8,15 @@
 #ifndef ENVIRONMENT_PARSERS_HPP_
 #define ENVIRONMENT_PARSERS_HPP_
 
+#include <string>
+#include <boost/optional.hpp>
+
 #include "YamlWaveModelInput.hpp"
 #include "YamlSpectraInput.hpp"
 #include "YamlGRPC.hpp"
+#include "YamlWindModelInput.hpp"
 
-#include <string>
-#include <boost/optional.hpp>
+
 YamlDefaultWaveModel parse_default_wave_model(const std::string& yaml);
 YamlWaveModel        parse_waves(const std::string& yaml);
 YamlDiracDirection   parse_wave_dirac_direction(const std::string& yaml);
@@ -24,5 +27,8 @@ YamlBretschneider    parse_bretschneider(const std::string& yaml);
 YamlCos2s            parse_cos2s(const std::string& yaml);
 boost::optional<int> parse_seed_of_random_number_generator(const std::string& yaml);
 YamlGRPC             parse_grpc(const std::string& yaml);
+
+YamlWindModel parse_wind(const std::string& yaml);
+YamlUniformWind parse_uniform_wind(const std::string& yaml);
 
 #endif  /* ENVIRONMENT_PARSERS_HPP_ */

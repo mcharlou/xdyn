@@ -8,6 +8,13 @@
 #ifndef SIMULATORBUILDER_HPP_
 #define SIMULATORBUILDER_HPP_
 
+#include <map>
+#include <boost/utility/enable_if.hpp>
+#include <boost/type_traits/is_base_of.hpp>
+
+#include <ssc/data_source.hpp>
+#include <ssc/kinematics.hpp>
+
 #include "WaveModel.hpp"
 #include "WaveDirectionalSpreading.hpp"
 #include "WaveSpectralDensity.hpp"
@@ -17,18 +24,22 @@
 #include "SpectrumBuilder.hpp"
 #include "WaveModelBuilder.hpp"
 
+#include "WindModelBuilder.hpp"
+#include "WindMeanVelocityProfileBuilder.hpp"
+#include "WindTurbulenceModelBuilder.hpp"
+
+#include "Body.hpp"
+#include "BodyBuilder.hpp"
+
+#include "ForceModel.hpp"
+
+#include "AbstractController.hpp"
+
 #include "Sim.hpp"
 #include "YamlSimulatorInput.hpp"
 
 #include "EnvironmentAndFrames.hpp"
 #include "GeometricTypes3d.hpp"
-
-#include <map>
-#include <boost/utility/enable_if.hpp>
-#include <boost/type_traits/is_base_of.hpp>
-
-#include <ssc/data_source.hpp>
-#include <ssc/kinematics.hpp>
 
 class BodyBuilder;
 typedef std::map<std::string, VectorOfVectorOfPoints> MeshMap;
@@ -53,14 +64,14 @@ class SimulatorBuilder
           *  \snippet simulator/unit_tests/src/SimulatorBuilderTest.cpp SimulatorBuilderTest build_example
           */
         Sim build(const MeshMap& input_meshes //!< Map containing a mesh for each body
-                  ) const;
+                  );
 
         /**  \brief Builds a Sim object reading the meshes from files
           *  \details Reads the STL data from an STL file & call the version of
           *           the build method that accepts a MeshMap as input.
           *  \snippet simulator/unit_tests/src/SimulatorBuilderTest.cpp SimulatorBuilderTest build_example
           */
-        Sim build() const;
+        Sim build();
 
         /**  \brief Add the capacity to parse the default wave model
           *  \details This method must not be called with any parameters: the
@@ -94,21 +105,6 @@ class SimulatorBuilder
             return *this;
         }
 
-        /**  \brief Add the capacity to parse certain YAML inputs for forces
-          *  \details This method must not be called with any parameters: the
-          *  default parameter is only there so we can use boost::enable_if. This
-          *  allows us to use can_parse for several types derived from a few
-          *  base classes (WaveModelInterface, ForceModel...) & the compiler will
-          *  automagically choose the right version of can_parse.
-          *  \returns *this (so we can chain calls to can_parse)
-          *  \snippet simulator/unit_tests/src/SimulatorBuilderTest.cpp SimulatorBuilderTest can_parse_example
-          */
-        template <typename T> SimulatorBuilder& can_parse(typename boost::enable_if<boost::is_base_of<ForceModel,T> >::type* dummy = 0)
-        {
-            (void)dummy; // Ignore "unused variable" warning: we just need "dummy" for boost::enable_if
-            force_parsers.push_back(ForceModel::build_parser<T>());
-            return *this;
-        }
 
         /**  \brief Add the capacity to parse certain YAML inputs for wave directional spreadings (eg. cos2s)
           *  \details This method must not be called with any parameters: the
@@ -126,19 +122,15 @@ class SimulatorBuilder
             return *this;
         }
 
-        /**  \brief Add the capacity to parse certain YAML inputs for controlled forces (eg. Wageningen propellers)
-          *  \details This method must not be called with any parameters: the
-          *  default parameter is only there so we can use boost::enable_if. This
-          *  allows us to use can_parse for several types derived from a few
-          *  base classes (WaveModelInterface, ForceModel...) & the compiler will
-          *  automagically choose the right version of can_parse.
+        /**  \brief Add the capacity to parse certain YAML inputs for forces
+          *  \details This method forwards the capacity of parsing a force model to the BodyBuilder
           *  \returns *this (so we can chain calls to can_parse)
           *  \snippet simulator/unit_tests/src/SimulatorBuilderTest.cpp SimulatorBuilderTest can_parse_example
           */
-        template <typename T> SimulatorBuilder& can_parse(typename boost::enable_if<boost::is_base_of<ControllableForceModel,T> >::type* dummy = 0)
+        template <typename T> SimulatorBuilder& can_parse(typename boost::enable_if<boost::is_base_of<ForceModel,T> >::type* dummy = 0)
         {
-            (void)dummy; // Ignore "unused variable" warning: we just need "dummy" for boost::enable_if
-            controllable_force_parsers.push_back(ControllableForceModel::build_parser<T>());
+        	(void)dummy; // Ignore "unused variable" warning: we just need "dummy" for boost::enable_if
+        	body_builder->can_parse<T>();
             return *this;
         }
 
@@ -157,10 +149,76 @@ class SimulatorBuilder
             spectrum_parsers->push_back(SpectrumBuilderPtr(new SpectrumBuilder<T>()));
             return *this;
         }
-        std::vector<BodyPtr> get_bodies(const MeshMap& meshes, const std::vector<bool>& bodies_contain_surface_forces, std::map<std::string,double> Tmax) const;
+
+        /**  \brief Add the capacity to parse the default and actual wind models
+         *  \details This method must not be called with any parameters: the
+         *  default parameter is only there so we can use boost::enable_if. This
+         *  allows us to use can_parse for several types derived from a few
+         *  base classes (WaveModelInterface, ForceModel...) & the compiler will
+         *  automagically choose the right version of can_parse.
+         *  \returns *this (so we can chain calls to can_parse)
+         *  \snippet simulator/unit_tests/src/SimulatorBuilderTest.cpp SimulatorBuilderTest can_parse_example
+         */
+        template <typename T> SimulatorBuilder& can_parse(typename boost::enable_if<boost::is_base_of<WindModelInterface,T> >::type* dummy = 0)
+        {
+        	(void)dummy; // Ignore "unused variable" warning: we just need "dummy" for boost::enable_if
+        	wind_parsers.push_back(WindModelBuilderPtr(new WindModelBuilder<T>(wind_mean_velocity_parsers,wind_turbulence_model_parsers)));
+        	return *this;
+        }
+
+        /**  \brief Add the capacity to parse certain YAML inputs for wind profile (eg. log)
+         *  \details This method must not be called with any parameters: the
+         *  default parameter is only there so we can use boost::enable_if. This
+         *  allows us to use can_parse for several types derived from a few
+         *  base classes (WaveModelInterface, ForceModel...) & the compiler will
+         *  automagically choose the right version of can_parse.
+         *  \returns *this (so we can chain calls to can_parse)
+         *  \snippet simulator/unit_tests/src/SimulatorBuilderTest.cpp SimulatorBuilderTest can_parse_example
+         */
+        template <typename T> SimulatorBuilder& can_parse(typename boost::enable_if<boost::is_base_of<WindMeanVelocityProfile,T> >::type* dummy = 0)
+        {
+        	(void)dummy; // Ignore "unused variable" warning: we just need "dummy" for boost::enable_if
+        	wind_mean_velocity_parsers->push_back(WindMeanVelocityProfileBuilderPtr(new WindMeanVelocityProfileBuilder<T>()));
+        	return *this;
+        }
+
+        /**  \brief Add the capacity to parse certain YAML inputs for wind turbulence (eg. Dryden)
+         *  \details This method must not be called with any parameters: the
+         *  default parameter is only there so we can use boost::enable_if. This
+         *  allows us to use can_parse for several types derived from a few
+         *  base classes (WaveModelInterface, ForceModel...) & the compiler will
+         *  automagically choose the right version of can_parse.
+         *  \returns *this (so we can chain calls to can_parse)
+         *  \snippet simulator/unit_tests/src/SimulatorBuilderTest.cpp SimulatorBuilderTest can_parse_example
+         */
+        template <typename T> SimulatorBuilder& can_parse(typename boost::enable_if<boost::is_base_of<WindTurbulenceModel,T> >::type* dummy = 0)
+        {
+        	(void)dummy; // Ignore "unused variable" warning: we just need "dummy" for boost::enable_if
+        	wind_turbulence_model_parsers->push_back(WindTurbulenceModelBuilderPtr(new WindTurbulenceModelBuilder<T>()));
+        	return *this;
+        }
+
+        /**  \brief Add the capacity to parse certain YAML inputs for controllers
+         *  \details This method must not be called with any parameters: the
+         *  default parameter is only there so we can use boost::enable_if. This
+         *  allows us to use can_parse for several types derived from a few
+         *  base classes (WaveModelInterface, ForceModel...) & the compiler will
+         *  automagically choose the right version of can_parse.
+         *  \returns *this (so we can chain calls to can_parse)
+         *  \snippet simulator/unit_tests/src/SimulatorBuilderTest.cpp SimulatorBuilderTest can_parse_example
+         */
+        template <typename T> SimulatorBuilder& can_parse(typename boost::enable_if<boost::is_base_of<AbstractController,T> >::type* dummy = 0)
+        {
+        	(void)dummy; // Ignore "unused variable" warning: we just need "dummy" for boost::enable_if
+        	controller_parsers.push_back(AbstractController::build_parser<T>());
+        	return *this;
+        }
+
+        std::vector<BodyPtr> get_bodies(const MeshMap& meshes, const EnvironmentAndFrames& env) const;
         EnvironmentAndFrames get_environment() const;
-        std::vector<ListOfForces> get_forces(const EnvironmentAndFrames& env) const;
-        std::vector<ListOfControlledForces> get_controlled_forces(const EnvironmentAndFrames& env) const;
+        //std::vector<ListOfForces> get_forces(const EnvironmentAndFrames& env) const;
+        //std::vector<ListOfControlledForces> get_controlled_forces(const EnvironmentAndFrames& env) const;
+        void get_controllers(ssc::data_source::DataSource* const data_source, const std::vector<BodyPtr> bodies) const;
         StateType get_initial_states() const;
         YamlSimulatorInput get_parsed_yaml() const;
         MeshMap make_mesh_map() const;
@@ -171,27 +229,31 @@ class SimulatorBuilder
         void add_initial_transforms(const std::vector<BodyPtr>& bodies, //!< Bodies containing the initial coordinates
                                     ssc::kinematics::KinematicsPtr& k) const;
 
-        std::vector<bool> are_there_surface_forces_acting_on_body(const std::vector<ListOfForces>& forces) const;
+        //std::vector<bool> are_there_surface_forces_acting_on_body(const std::vector<ListOfForces>& forces) const;
 
     private:
         SimulatorBuilder(); // Disabled
-        std::map<std::string, double> get_max_history_length(const std::vector<ListOfForces>& forces_for_all_bodies, const std::vector<ListOfControlledForces>& controlled_forces_for_all_bodies) const;
+        //std::map<std::string, double> get_max_history_length(const std::vector<ListOfForces>& forces_for_all_bodies, const std::vector<ListOfControlledForces>& controlled_forces_for_all_bodies) const;
         SurfaceElevationPtr get_wave() const;
-        ListOfForces forces_from(const YamlBody& body, const EnvironmentAndFrames& env) const;
-        ListOfControlledForces controlled_forces_from(const YamlBody& body, const EnvironmentAndFrames& env) const;
-        void add(const YamlModel& model, ListOfForces& L, const std::string& name, const EnvironmentAndFrames& env) const;
-        void add(const YamlModel& model, ListOfControlledForces& L, const std::string& name, const EnvironmentAndFrames& env) const;
+        WindModelPtr get_wind() const;
+        //ListOfForces forces_from(const YamlBody& body, const std::string body_namePtr, const EnvironmentAndFrames& env) const;
+        //ListOfControlledForces controlled_forces_from(const YamlBody& body, const EnvironmentAndFrames& env) const;
+        //void add(const YamlModel& model, ListOfForces& L, const std::string body_name, const EnvironmentAndFrames& env) const;
+        //void add(const YamlModel& model, ListOfControlledForces& L, const std::string& name, const EnvironmentAndFrames& env) const;
+        void add_controller(const YamlModel& model, ssc::data_source::DataSource* const data_source) const;
         VectorOfVectorOfPoints get_mesh(const YamlBody& body) const;
 
         YamlSimulatorInput input;
-        TR1(shared_ptr)<BodyBuilder> builder;
-        std::vector<ForceParser> force_parsers;
-        std::vector<ControllableForceParser> controllable_force_parsers;
+        std::shared_ptr<BodyBuilder> body_builder;
         std::vector<SurfaceElevationBuilderPtr> surface_elevation_parsers;
-        TR1(shared_ptr)<std::vector<WaveModelBuilderPtr> > wave_parsers;
-        TR1(shared_ptr)<std::vector<DirectionalSpreadingBuilderPtr> > directional_spreading_parsers;
-        TR1(shared_ptr)<std::vector<SpectrumBuilderPtr> > spectrum_parsers;
+        std::shared_ptr<std::vector<WaveModelBuilderPtr> > wave_parsers;
+        std::shared_ptr<std::vector<DirectionalSpreadingBuilderPtr> > directional_spreading_parsers;
+        std::shared_ptr<std::vector<SpectrumBuilderPtr> > spectrum_parsers;
+        std::vector<WindModelBuilderPtr> wind_parsers;
+        std::shared_ptr<std::vector<WindMeanVelocityProfileBuilderPtr>> wind_mean_velocity_parsers;
+        std::shared_ptr<std::vector<WindTurbulenceModelBuilderPtr>> wind_turbulence_model_parsers;
         ssc::data_source::DataSource command_listener;
+        std::vector<ControllerParser> controller_parsers;
         double t0; //!< First time step (to initialize state history)
 };
 

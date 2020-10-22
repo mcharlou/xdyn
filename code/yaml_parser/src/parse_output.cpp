@@ -19,7 +19,7 @@ struct s_body
 
 void operator >> (const YAML::Node& node, YamlOutput& f);
 std::string customize(const std::string& var_name, const std::string& body_name);
-std::string customize2(const std::string& var_name,const std::string& body_name, const std::string& force_name);
+std::string customize2(const std::string& var_name,const std::string& body_name, const std::string& frame_name, const std::string& force_name);
 void fill(YamlOutput& out, const s_body& body);
 std::vector<s_body> get_body_names(const std::string yaml);
 
@@ -63,9 +63,9 @@ std::string customize(const std::string& var_name, const std::string& body_name)
     return var_name + "(" + body_name + ")";
 }
 
-std::string customize2(const std::string& var_name,const std::string& body_name, const std::string& force_name)
+std::string customize2(const std::string& var_name,const std::string& body_name, const std::string& frame_name, const std::string& force_name)
 {
-	return var_name + "(" + force_name + "," + body_name + "," + body_name + ")";
+	return var_name + "(" + force_name + "," + body_name + "," + frame_name + ")";
 }
 
 void fill(YamlOutput& out, const s_body& body)
@@ -89,12 +89,18 @@ void fill(YamlOutput& out, const s_body& body)
     out.data.push_back(customize("psi", body.name));
 
     for(auto force:body.forces){
-    	out.data.push_back(customize2("Fx",body.name,force));
-		out.data.push_back(customize2("Fy",body.name,force));
-		out.data.push_back(customize2("Fz",body.name,force));
-		out.data.push_back(customize2("Mx",body.name,force));
-		out.data.push_back(customize2("My",body.name,force));
-		out.data.push_back(customize2("Mz",body.name,force));
+    	out.data.push_back(customize2("Fx",body.name,body.name,force));
+    	out.data.push_back(customize2("Fy",body.name,body.name,force));
+    	out.data.push_back(customize2("Fz",body.name,body.name,force));
+    	out.data.push_back(customize2("Mx",body.name,body.name,force));
+    	out.data.push_back(customize2("My",body.name,body.name,force));
+    	out.data.push_back(customize2("Mz",body.name,body.name,force));
+    	out.data.push_back(customize2("Fx",body.name,"NED",force));
+    	out.data.push_back(customize2("Fy",body.name,"NED",force));
+    	out.data.push_back(customize2("Fz",body.name,"NED",force));
+    	out.data.push_back(customize2("Mx",body.name,"NED",force));
+    	out.data.push_back(customize2("My",body.name,"NED",force));
+    	out.data.push_back(customize2("Mz",body.name,"NED",force));
     }
 }
 

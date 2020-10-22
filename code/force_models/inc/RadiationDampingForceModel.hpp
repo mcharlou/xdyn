@@ -9,14 +9,13 @@
 #define RadiationDampingForceModel_HPP_
 
 #include <ssc/macros.hpp>
-#include TR1INC(memory)
+#include <memory>
 
 #include "ForceModel.hpp"
 #include "YamlRadiationDamping.hpp"
+#include "EnvironmentAndFrames.hpp"
 
 class HDBParser;
-
-struct EnvironmentAndFrames;
 
 class RadiationDampingForceModel : public ForceModel
 {
@@ -24,19 +23,19 @@ class RadiationDampingForceModel : public ForceModel
         struct Input
         {
             Input() : hdb(), yaml(){}
-            TR1(shared_ptr)<HDBParser> hdb;
+            std::shared_ptr<HDBParser> hdb;
             YamlRadiationDamping yaml;
         };
         RadiationDampingForceModel(const Input& input, const std::string& body_name, const EnvironmentAndFrames& env);
-        ssc::kinematics::Wrench operator()(const BodyStates& states, const double t) const;
+        Vector6d get_force(const BodyStates& states, const double t, const EnvironmentAndFrames& env, const std::map<std::string,double>& commands) const override;
         static Input parse(const std::string& yaml, const bool parse_hdb=true);
         static std::string model_name();
-        double get_Tmax() const;
+        double get_Tmax() const override;
 
     private:
         RadiationDampingForceModel();
         class Impl;
-        TR1(shared_ptr)<Impl> pimpl;
+        std::shared_ptr<Impl> pimpl;
 
 };
 

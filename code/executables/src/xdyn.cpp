@@ -8,6 +8,7 @@
 #include <exception>
 #include <functional>
 #include <iostream>
+#include <boost/timer/timer.hpp>
 
 #include "yaml-cpp/exceptions.h"
 
@@ -35,20 +36,28 @@ CHECK_SSC_VERSION(8,0)
 void solve(const XdynCommandLineArguments& input_data, Sim& sys, ListOfObservers& observer);
 void solve(const XdynCommandLineArguments& input_data, Sim& sys, ListOfObservers& observer)
 {
+	std::cout << "Selected solver: " << input_data.solver << std::endl;
+	std::cout << "Starting time: " << input_data.tstart << std::endl;
+	std::cout << "Ending time: " << input_data.tend << std::endl;
+	std::cout << "Time step: " << input_data.initial_timestep << std::endl;
     if (input_data.solver=="euler")
     {
+    	std::cout << "Using Euler solver" << std::endl;
         ssc::solver::quicksolve<ssc::solver::EulerStepper>(sys, input_data.tstart, input_data.tend, input_data.initial_timestep, observer);
     }
     else if (input_data.solver=="rk4")
     {
+    	std::cout << "Using RK4 solver" << std::endl;
         ssc::solver::quicksolve<ssc::solver::RK4Stepper>(sys, input_data.tstart, input_data.tend, input_data.initial_timestep, observer);
     }
     else if (input_data.solver=="rkck")
     {
+    	std::cout << "Using RKCK solver" << std::endl;
         ssc::solver::quicksolve<ssc::solver::RKCK>(sys, input_data.tstart, input_data.tend, input_data.initial_timestep, observer);
     }
     else
     {
+    	std::cout << "Using Euler solver (default)" << std::endl;
         ssc::solver::quicksolve<ssc::solver::EulerStepper>(sys, input_data.tstart, input_data.tend, input_data.initial_timestep, observer);
     }
 }
@@ -132,17 +141,25 @@ void run_simulation(const XdynCommandLineArguments& input_data)
 {
     const auto f = [input_data](){
     {
+    	boost::timer::cpu_timer timer;
         const auto yaml_input = ssc::text_file_reader::TextFileReader(input_data.yaml_filenames).get_contents();
-        ssc::data_source::DataSource command_listener;
+        ssc::data_source::DataSource command_listener; // ANY USE ??
         auto sys = get_system(yaml_input, input_data.tstart);
+        sys.update_forces(input_data.tstart);
         auto observers_description = build_observers_description(yaml_input, input_data);
         ListOfObservers observers(observers_description);
         serialize_context_if_necessary(observers_description, sys, yaml_input, input_data_serialize(input_data));
         serialize_context_if_necessary_new(observers, sys);
         solve(input_data, sys, observers);
+        if(input_data.verbose)
+        {
+        	std::cout << timer.format(3,"Execution time: %ts\n");
+        }
     }};
+
     if (input_data.catch_exceptions) report_xdyn_exceptions_to_user(f, [](const std::string& s){std::cerr << s;} );
     else                             f();
+
 }
 
 

@@ -21,11 +21,12 @@
 class ImmersedSurfaceForceModel : public SurfaceForceModel
 {
     public:
-        ImmersedSurfaceForceModel(const std::string& name, const std::string& body_name, const EnvironmentAndFrames& env);
+        ImmersedSurfaceForceModel(const std::string& name, const std::string body_name, const EnvironmentAndFrames& env);
+        //ImmersedSurfaceForceModel(const std::string& name, const std::string body_name, const EnvironmentAndFrames& env, const YamlPosition& internal_frame);
         virtual ~ImmersedSurfaceForceModel();
 
     private:
-        ImmersedSurfaceForceModel();
+        ImmersedSurfaceForceModel(); // Deactivated
         FacetIterator begin(const MeshIntersectorPtr& intersector) const;
         FacetIterator end(const MeshIntersectorPtr& intersector) const;
 };

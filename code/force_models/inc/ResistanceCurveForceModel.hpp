@@ -10,7 +10,7 @@
 
 #include <ssc/macros.hpp>
 
-#include "ForceModel.hpp"
+#include "ForceModelAtG.hpp"
 
 struct EnvironmentAndFrames;
 
@@ -23,7 +23,7 @@ struct EnvironmentAndFrames;
  *  \section ex2 Expected output
  *  \snippet model_wrappers/unit_tests/src/ResistanceCurveForceModelTest.cpp ResistanceCurveForceModelTest expected output
  */
-class ResistanceCurveForceModel : public ForceModel
+class ResistanceCurveForceModel : public ForceModelAtG
 {
     public:
         struct Yaml
@@ -34,13 +34,13 @@ class ResistanceCurveForceModel : public ForceModel
         };
         ResistanceCurveForceModel(const Yaml& data, const std::string& body_name, const EnvironmentAndFrames& env);
         static Yaml parse(const std::string& yaml);
-        ssc::kinematics::Wrench operator()(const BodyStates& states, const double t) const;
+        Vector6d get_force(const BodyStates& states, const double t, const EnvironmentAndFrames& env, const std::map<std::string,double>& commands) const override;
         static std::string model_name();
 
     private:
         ResistanceCurveForceModel();
         class Impl;
-        TR1(shared_ptr)<Impl> pimpl;
+        std::shared_ptr<Impl> pimpl;
 
 };
 

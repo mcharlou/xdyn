@@ -20,6 +20,7 @@ std::string test_data::issue_20()
        << "    g: {value: 9.81, unit: m/s^2}\n"
        << "    rho: {value: 1025, unit: kg/m^3}\n"
        << "    nu: {value: 1.19e-6, unit: m^2/s}\n"
+	   << "    air density: {value: 1.225, unit: kg/m^2}\n"
        << "\n"
        << "# Fixed frame: NED\n"
        << "bodies: # All bodies have NED as parent frame\n"

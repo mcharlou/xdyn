@@ -12,7 +12,7 @@
 
 #include <ssc/kinematics.hpp>
 #include <ssc/macros.hpp>
-#include TR1INC(memory)
+#include <memory>
 
 /** \author cec
  *  \date Aug 1, 2014, 3:15:04 PM
@@ -136,6 +136,6 @@ class WaveModel
         FlatDiscreteDirectionalWaveSpectrum flat_spectrum;
 };
 
-typedef TR1(shared_ptr)<WaveModel> WaveModelPtr;
+typedef std::shared_ptr<WaveModel> WaveModelPtr;
 
 #endif /* WAVEMODEL_HPP_ */

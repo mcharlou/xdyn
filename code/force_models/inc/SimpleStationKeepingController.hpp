@@ -8,9 +8,9 @@
 #ifndef SIMPLESTATIONKEEPINGCONTROLLER_HPP_
 #define SIMPLESTATIONKEEPINGCONTROLLER_HPP_
 
-#include "ControllableForceModel.hpp"
+#include "ForceModel.hpp"
 
-class SimpleStationKeepingController : public ControllableForceModel
+class SimpleStationKeepingController : public ForceModel
 {
     public:
         struct Yaml
@@ -28,7 +28,7 @@ class SimpleStationKeepingController : public ControllableForceModel
         static std::string model_name();
 
         SimpleStationKeepingController(const Yaml& input, const std::string& body_name, const EnvironmentAndFrames& env);
-        ssc::kinematics::Vector6d get_force(const BodyStates& states, const double t, const std::map<std::string,double>& commands) const;
+        Vector6d get_force(const BodyStates& states, const double t, const EnvironmentAndFrames& env, const std::map<std::string,double>& commands) const override;
 
     private:
         SimpleStationKeepingController();
@@ -38,7 +38,6 @@ class SimpleStationKeepingController : public ControllableForceModel
         double omega_y;
         double ksi_psi;
         double omega_psi;
-        YamlRotation rotation_convention;
 };
 
 #endif /* SIMPLESTATIONKEEPINGCONTROLLER_HPP_ */

@@ -81,7 +81,8 @@ TEST_F(LinearDampingForceModelTest, example)
     const double EPS = 1e-9;
     Eigen::Matrix<double,6,6> D;
     double u,v,w,p,q,r;
-    EnvironmentAndFrames env;
+    const EnvironmentAndFrames env;
+    ssc::data_source::DataSource ds;
     BodyStates states = get_body(BODY)->get_states();
     D <<  2,   3,   5,   7,  11,  13,
          17,  19,  23,  29,  31,  37,
@@ -99,7 +100,8 @@ TEST_F(LinearDampingForceModelTest, example)
         states.p.record(0, p = a.random<double>().between(-10.0,+10.0));
         states.q.record(0, q = a.random<double>().between(-10.0,+10.0));
         states.r.record(0, r = a.random<double>().between(-10.0,+10.0));
-        const ssc::kinematics::Wrench f = F(states,a.random<double>());
+
+        const ssc::kinematics::Wrench f = F(states, a.random<double>(), env, ds);
         ASSERT_EQ(BODY, f.get_frame());
         for (int j=0;j<3;++j)
         {

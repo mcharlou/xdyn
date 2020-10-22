@@ -8,7 +8,7 @@
 #ifndef ABSTRACTWAGENINGEN_HPP_
 #define ABSTRACTWAGENINGEN_HPP_
 
-#include "ControllableForceModel.hpp"
+#include "ForceModel.hpp"
 
 /** \details This class was created to
  *  \addtogroup module
@@ -18,7 +18,7 @@
  *  \section ex2 Expected output
  *  \snippet module/unit_tests/src/AbstractWageningenTest.cpp AbstractWageningenTest expected output
  */
-class AbstractWageningen : public ControllableForceModel
+class AbstractWageningen : public ForceModel
 {
     public:
         struct Yaml
@@ -34,9 +34,10 @@ class AbstractWageningen : public ControllableForceModel
             double diameter;
         };
         AbstractWageningen(const Yaml& input, const std::string& body_name, const EnvironmentAndFrames& env);
+        AbstractWageningen(const Yaml& input, const std::string& body_name, const EnvironmentAndFrames& env, const std::vector<std::string>& commands_);
         virtual double get_Kt(const std::map<std::string,double>& commands, const double J) const = 0;
         virtual double get_Kq(const std::map<std::string,double>& commands, const double J) const = 0;
-        ssc::kinematics::Vector6d get_force(const BodyStates& states, const double t, const std::map<std::string,double>& commands) const;
+        ssc::kinematics::Vector6d get_force(const BodyStates& states, const double t, const EnvironmentAndFrames& env, const std::map<std::string,double>& commands) const override;
         double advance_ratio(const BodyStates& states, const std::map<std::string,double>& commands) const;
         static Yaml parse(const std::string& yaml);
 

@@ -20,8 +20,8 @@ class ConstantForceModelTest : public ::testing::Test
         virtual void SetUp();
         virtual void TearDown();
         ssc::random_data_generator::DataGenerator a;
-        BodyStates get_states(const double phi, const double theta, const double psi, EnvironmentAndFrames& env) const;
-        ConstantForceModel get_constant_force(EnvironmentAndFrames& env) const;
+        BodyStates get_states(const double phi, const double theta, const double psi, const EnvironmentAndFrames& env) const;
+        ConstantForceModel get_constant_force(const EnvironmentAndFrames& env) const;
         EnvironmentAndFrames get_env() const;
         BodyPtr get_body(const std::string& name) const;
 };

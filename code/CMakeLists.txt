@@ -36,6 +36,7 @@ CONFIGURE_FILE("${CMAKE_CURRENT_SOURCE_DIR}/Copyright.txt"
                "${CMAKE_CURRENT_BINARY_DIR}/Copyright.txt" @ONLY)
 #############################################################################
 # External libraries
+MESSAGE(STATUS "INCLUDING EXTERNAL LIBRARIES (CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}, PATH=${PATH})")
 INCLUDE(CMakeOutputDirectories)
 INCLUDE(CMakeGMock)
 INCLUDE(CMakeSSC)
@@ -44,12 +45,14 @@ INCLUDE(CMakeEigen)
 INCLUDE(CMakeHdf5)
 INCLUDE(CMakeProtoBuf)
 INCLUDE(CMakeGRPC)
+INCLUDE(CMakeCppZMQ)
+find_package(RapidJSON)
 
 INCLUDE(CMakeBoost)
 SET(Boost_USE_STATIC_LIBS   ON)
 SET(Boost_USE_MULTITHREADED OFF)
 #SET(Boost_USE_STATIC_RUNTIME    OFF)
-FIND_PACKAGE(Boost 1.53 COMPONENTS program_options filesystem system regex REQUIRED) #random
+FIND_PACKAGE(Boost 1.53 COMPONENTS program_options filesystem system regex chrono timer REQUIRED) #random
 IF(Boost_FOUND)
     MESSAGE(STATUS "Boost_INCLUDE_DIRS  : ${Boost_INCLUDE_DIRS}")
     MESSAGE(STATUS "Boost_LIBRARIES     : ${Boost_LIBRARIES}")
@@ -70,6 +73,7 @@ ADD_SUBDIRECTORY(environment_models)
 ADD_SUBDIRECTORY(yaml_parser)
 ADD_SUBDIRECTORY(boost_program_options_descriptions)
 ADD_SUBDIRECTORY(hdb_interpolators)
+ADD_SUBDIRECTORY(controllers)
 ADD_SUBDIRECTORY(core)
 ADD_SUBDIRECTORY(force_models)
 ADD_SUBDIRECTORY(grpc)
@@ -88,6 +92,7 @@ ADD_LIBRARY(${PROJECT_NAME} ${STATICORSHARED}
         $<TARGET_OBJECTS:core>
         $<TARGET_OBJECTS:observers_and_api>
         $<TARGET_OBJECTS:parser_extensions>
+        $<TARGET_OBJECTS:controllers>
         $<TARGET_OBJECTS:force_models>
         $<TARGET_OBJECTS:environment_models>
         $<TARGET_OBJECTS:external_file_formats>
@@ -112,6 +117,7 @@ TARGET_LINK_LIBRARIES(${PROJECT_NAME} PRIVATE ${HDF5_CXX_STATIC_LIBRARY} ${HDF5_
 TARGET_LINK_LIBRARIES(${PROJECT_NAME} PRIVATE ${Boost_FILESYSTEM_LIBRARY})
 TARGET_LINK_LIBRARIES(${PROJECT_NAME} PRIVATE ${Boost_SYSTEM_LIBRARY})
 TARGET_LINK_LIBRARIES(${PROJECT_NAME} PRIVATE ${Boost_REGEX_LIBRARY})
+TARGET_LINK_LIBRARIES(${PROJECT_NAME} PRIVATE ${Boost_TIMER_LIBRARY})
 
 IF(WIN32)
     TARGET_LINK_LIBRARIES(${PROJECT_NAME} PUBLIC wsock32 ws2_32)

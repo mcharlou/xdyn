@@ -23,6 +23,7 @@ struct YamlSimulatorInput
     std::vector<YamlModel> environment;
     std::vector<YamlBody> bodies;
     std::vector<YamlCommands> commands;
+    std::vector<YamlModel> controllers;
 };
 
 #endif /* YAMLSIMULATORINPUT_HPP_ */

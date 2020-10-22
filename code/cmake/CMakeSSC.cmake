@@ -14,8 +14,8 @@ ENDIF()
 SET(ssc_STATIC_LIB "${ssc_INCLUDE_DIRS}/../lib/libssc_static.a" CACHE PATH "Path to SSC static library")
 
 IF(ssc_FOUND)
-    MESSAGE(STATUS "SSC : ssc_INCLUDE_DIRS = ${ssc_INCLUDE_DIRS}")
-    MESSAGE(STATUS "SSC : ssc_VERSION = ${ssc_VERSION}")
+    MESSAGE(STATUS "PATH ${ssc_INCLUDE_DIRS} INCLUDED FOR SSC")
+    MESSAGE(STATUS "SSC VERSION = ${ssc_VERSION}")
 ENDIF()
 
 MACRO(ADD_IMPORTED_LIB libname)

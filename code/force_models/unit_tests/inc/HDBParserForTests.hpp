@@ -16,6 +16,7 @@ class HDBParserForTests : public HDBParser
         HDBParserForTests(const std::vector<double>& omega, const std::vector<double>& Br);
         std::vector<double> get_radiation_damping_angular_frequencies() const;
         std::vector<double> get_radiation_damping_coeff(const size_t i, const size_t j) const;
+        // TODO: Add a method to get the added mass coefficient
 
     private:
         HDBParserForTests();

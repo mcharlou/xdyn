@@ -86,7 +86,8 @@ class ForceTester
         Sim make_sim(const std::string& yaml, const VectorOfVectorOfPoints& stl) const;
         std::vector<ForcePtr> forces;
         BodyPtr body;
-        EnvironmentAndFrames env;
+        const EnvironmentAndFrames env;
+        ssc::data_source::DataSource ds;
         double current_instant;
 };
 

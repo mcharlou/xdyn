@@ -5,6 +5,8 @@
  *      Author: cady
  */
 
+#include <vector>
+
 #include "calculate_gz.hpp"
 #include "GZTypes.hpp"
 #include "GravityForceModel.hpp"
@@ -17,8 +19,8 @@
 GZ::ResultantForceComputer::ResultantForceComputer(const Sim& s, const double dz_, const double dtheta_) :
     body(s.get_bodies().front()),
     env(s.get_env()),
-    gravity(TR1(static_pointer_cast)<GravityForceModel>(s.get_forces().begin()->second.front())),
-    hydrostatic(s.get_forces().begin()->second.back()),
+    gravity(std::static_pointer_cast<GravityForceModel>(body->get_forces().front())),
+    hydrostatic(body->get_forces().back()),
     current_instant(0),
     G(body->get_states().G),
     dz(dz_),
@@ -51,8 +53,9 @@ GZ::Resultant GZ::ResultantForceComputer::resultant(const ::GZ::State& point)
 
     body->update(env,x,current_instant);
 
-    gravity->update(body->get_states(),current_instant);
-    hydrostatic->update(body->get_states(),current_instant);
+    ssc::data_source::DataSource ds; // This won't be used because we know the hydrostatic and gravity models don't need commands
+    gravity->update(body->get_states(), current_instant, env, ds);
+    hydrostatic->update(body->get_states(), current_instant, env, ds);
     const auto gravity_force = gravity->get_force_in_ned_frame();
     const auto hydrostatic_force = hydrostatic->get_force_in_ned_frame();
     const double gz = calculate_gz(*hydrostatic, env);

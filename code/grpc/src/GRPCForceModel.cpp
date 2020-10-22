@@ -5,7 +5,6 @@
  *      Author: cady
  */
 
-#include <memory> // std::make_shared
 #include <vector>
 #include <grpcpp/grpcpp.h>
 #include "force.pb.h"
@@ -262,19 +261,17 @@ GRPCForceModel::Input GRPCForceModel::parse(const std::string& yaml)
 }
 
 GRPCForceModel::GRPCForceModel(const GRPCForceModel::Input& input, const std::string& body_name_, const EnvironmentAndFrames& env_) :
-        GRPCForceModel(TR1(shared_ptr)<GRPCForceModel::Impl>(new GRPCForceModel::Impl(input, env_.rot.convention, body_name_)), body_name_, env_)
+        GRPCForceModel(std::shared_ptr<GRPCForceModel::Impl>(new GRPCForceModel::Impl(input, env_.rot.convention, body_name_)), body_name_, env_)
 {
 }
 
-GRPCForceModel::GRPCForceModel(const TR1(shared_ptr)<Impl>& pimpl_, const std::string& body_name_, const EnvironmentAndFrames& env_) :
-        ControllableForceModel(pimpl_->get_input().name, pimpl_->get_commands(), pimpl_->get_transformation_to_model_frame(), body_name_, env_),
-        pimpl(pimpl_),
-        env(env_)
-
+GRPCForceModel::GRPCForceModel(const std::shared_ptr<Impl>& pimpl_, const std::string& body_name_, const EnvironmentAndFrames& env_) :
+        ForceModel(pimpl_->get_input().name, body_name_, env_, pimpl_->get_transformation_to_model_frame(), pimpl_->get_commands()),
+        pimpl(pimpl_)
 {
 }
 
-ssc::kinematics::Vector6d GRPCForceModel::get_force(const BodyStates& states, const double t, const std::map<std::string,double>& commands) const
+ssc::kinematics::Vector6d GRPCForceModel::get_force(const BodyStates& states, const double t, const EnvironmentAndFrames& env, const std::map<std::string,double>& commands) const
 {
     const auto ret = pimpl->force(t, states, commands, env, get_name());
     return ret;
@@ -285,7 +282,7 @@ void GRPCForceModel::extra_observations(Observer& observer) const
     const auto extra_observations = pimpl->get_extra_observations();
     for (const auto observation : extra_observations)
     {
-        observer.write(observation.second, DataAddressing(std::vector<std::string>{"efforts",get_body_name(),get_name(),observation.first},observation.first + std::string("(") + get_body_name() + ")"));
+        observer.write(observation.second, DataAddressing({"efforts",get_body_name(),get_name(),observation.first},observation.first + std::string("(") + get_body_name() + ")"));
     }
 }
 

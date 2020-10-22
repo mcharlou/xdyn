@@ -24,6 +24,7 @@ struct YamlDiffraction
     std::string     hdb_filename;
     YamlCoordinates calculation_point;
     bool            mirror;
+    bool			use_encounter_frequency;
 };
 
 #endif /* YAMLDIFFRACTION_HPP_ */

@@ -257,6 +257,7 @@ void operator >> (const YAML::Node& node, YamlEnvironmentalConstants& f)
     ssc::yaml_parser::parse_uv(node["g"], f.g);
     ssc::yaml_parser::parse_uv(node["rho"], f.rho);
     ssc::yaml_parser::parse_uv(node["nu"], f.nu);
+    ssc::yaml_parser::parse_uv(node["air density"], f.air_density);
 }
 
 void operator >> (const YAML::Node& node, BlockableState& g);

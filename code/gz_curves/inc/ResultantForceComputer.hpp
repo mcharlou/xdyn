@@ -8,6 +8,8 @@
 #ifndef RESULTANTFORCECOMPUTER_HPP_
 #define RESULTANTFORCECOMPUTER_HPP_
 
+#include <memory>
+
 #include "Body.hpp"
 #include "EnvironmentAndFrames.hpp"
 #include "ForceModel.hpp"
@@ -40,7 +42,7 @@ namespace GZ
 
             BodyPtr body;
             EnvironmentAndFrames env;
-            TR1(shared_ptr)<GravityForceModel> gravity;
+            std::shared_ptr<GravityForceModel> gravity;
             ForcePtr hydrostatic;
             double current_instant;
             ssc::kinematics::Point G;

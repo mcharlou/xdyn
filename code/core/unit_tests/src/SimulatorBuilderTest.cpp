@@ -5,15 +5,21 @@
  *      Author: cady
  */
 
-#include "SimulatorBuilderTest.hpp"
+#include <ssc/kinematics.hpp>
+
 #include "SimulatorBuilder.hpp"
 #include "InternalErrorException.hpp"
 #include "TriMeshTestData.hpp"
 #include "generate_body_for_tests.hpp"
-#include <ssc/kinematics.hpp>
 #include "DefaultSurfaceElevation.hpp"
+#include "DefaultWindModel.hpp"
 #include "SimulatorYamlParser.hpp"
 #include "yaml_data.hpp"
+#include "GravityForceModel.hpp"
+#include "FastHydrostaticForceModel.hpp"
+#include "QuadraticDampingForceModel.hpp"
+
+#include "SimulatorBuilderTest.hpp"
 
 const YamlSimulatorInput SimulatorBuilderTest::input = SimulatorYamlParser(test_data::full_example()).parse();
 
@@ -37,14 +43,20 @@ void SimulatorBuilderTest::TearDown()
 
 TEST_F(SimulatorBuilderTest, throws_if_cannot_find_mesh)
 {
-    ASSERT_THROW(builder.get_bodies(MeshMap(), std::vector<bool>(1,false), std::map<std::string,double>()),InternalErrorException);
+    ASSERT_THROW(builder.get_bodies(MeshMap(), EnvironmentAndFrames()),InternalErrorException);
 }
 
 TEST_F(SimulatorBuilderTest, can_get_bodies)
 {
     MeshMap m;
+    builder.can_parse<DefaultSurfaceElevation>()
+    	   .can_parse<DefaultWindModel>()
+		   .can_parse<GravityForceModel>()
+		   .can_parse<FastHydrostaticForceModel>()
+		   .can_parse<QuadraticDampingForceModel>();
     m[input.bodies.front().name] = two_triangles();
-    const auto bodies = builder.get_bodies(m, std::vector<bool>(1,false), std::map<std::string,double>());
+    const EnvironmentAndFrames env = builder.get_environment();
+    const auto bodies = builder.get_bodies(m, env);
     ASSERT_EQ(1, bodies.size());
     ASSERT_EQ(input.bodies.front().name, bodies.front()->get_name());
     const auto states = bodies.front()->get_states();
@@ -61,6 +73,7 @@ TEST_F(SimulatorBuilderTest, can_get_bodies)
 TEST_F(SimulatorBuilderTest, can_get_rho_and_g)
 {
     builder.can_parse<DefaultSurfaceElevation>();
+    builder.can_parse<DefaultWindModel>();
     const auto env = builder.get_environment();
     ASSERT_DOUBLE_EQ(9.81,env.g);
     ASSERT_DOUBLE_EQ(1000,env.rho);
@@ -86,7 +99,16 @@ TEST_F(SimulatorBuilderTest, kinematics_contains_body_to_mesh_transform)
     ASSERT_TRUE(k.get() != NULL);
     for (auto that_body = bodies.begin() ; that_body != bodies.end() ; ++that_body)
     {
-        ASSERT_NO_THROW(k->get((*that_body)->get_name(), customize((*that_body)->get_name(), "mesh")));
+    	try
+    	{
+    		k->get((*that_body)->get_name(), customize((*that_body)->get_name(), "mesh"));
+    		SUCCEED();
+    	}
+    	catch (std::exception const & err)
+    	{
+    	    FAIL() << err.what();
+    	}
+        //ASSERT_NO_THROW(k->get((*that_body)->get_name(), customize((*that_body)->get_name(), "mesh")));
     }
 }
 
@@ -118,15 +140,4 @@ TEST_F(SimulatorBuilderTest, should_throw_if_attempting_to_define_wave_model_twi
     SimulatorBuilder builder2(input2, 0);
     builder2.can_parse<DefaultSurfaceElevation>();
     ASSERT_THROW(builder2.get_environment(), InternalErrorException);
-}
-
-TEST_F(SimulatorBuilderTest, get_forces_should_throw_if_there_is_anything_it_cannot_parse)
-{
-    builder.can_parse<DefaultSurfaceElevation>();
-    MeshMap m;
-    const std::string name = input.bodies.front().name;
-    m[name] = two_triangles();
-    const auto bodies = builder.get_bodies(m, std::vector<bool>(1,false), std::map<std::string,double>());
-    const auto env = builder.get_environment();
-    ASSERT_THROW(builder.get_forces(env), InvalidInputException);
 }

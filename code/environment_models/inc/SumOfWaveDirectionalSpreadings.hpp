@@ -9,7 +9,7 @@
 #define SUMOFWAVEDIRECTIONALSPREADINGS_HPP_
 
 #include <ssc/macros.hpp>
-#include TR1INC(memory)
+#include <memory>
 
 #include "WaveDirectionalSpreading.hpp"
 
@@ -35,7 +35,7 @@ class SumOfWaveDirectionalSpreadings : public WaveDirectionalSpreading
 
     private:
         SumOfWaveDirectionalSpreadings(); // Disabled
-        std::vector<TR1(shared_ptr)<WaveDirectionalSpreading> > terms;
+        std::vector<std::shared_ptr<WaveDirectionalSpreading> > terms;
 };
 
 #endif /* SUMOFWAVEDIRECTIONALSPREADINGS_HPP_ */

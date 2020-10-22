@@ -13,6 +13,7 @@ std::string test_data::bug_3235()
        << "    g: {value: 9.81, unit: m/s^2}\n"
        << "    rho: {value: 1000, unit: kg/m^3}\n"
        << "    nu: {value: 1.14e-6, unit: m^2/s}\n"
+	   << "    air density: {value: 1.225, unit: kg/m^2}\n"
        << "\n"
        << "# Fixed frame: NED\n"
        << "bodies: # All bodies have NED as parent frame\n"

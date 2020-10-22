@@ -5,12 +5,13 @@
  *      Author: cady
  */
 
-#include "ResistanceCurveForceModel.hpp"
 #include "Body.hpp"
 #include "environment_parsers.hpp"
 #include <ssc/interpolation.hpp>
 #include <ssc/yaml_parser.hpp>
 #include "yaml.h"
+
+#include "ResistanceCurveForceModel.hpp"
 
 std::string ResistanceCurveForceModel::model_name() {return "resistance curve";}
 
@@ -39,7 +40,8 @@ ResistanceCurveForceModel::Yaml::Yaml() : Va(), R()
 {
 }
 
-ResistanceCurveForceModel::ResistanceCurveForceModel(const Yaml& data, const std::string& body_name_, const EnvironmentAndFrames&) : ForceModel(model_name(), body_name_), pimpl(new Impl(data))
+ResistanceCurveForceModel::ResistanceCurveForceModel(const Yaml& data, const std::string& body_name, const EnvironmentAndFrames&) :
+		ForceModelAtG(ResistanceCurveForceModel::model_name(), body_name), pimpl(new Impl(data))
 {
 }
 
@@ -55,9 +57,9 @@ ResistanceCurveForceModel::Yaml ResistanceCurveForceModel::parse(const std::stri
     return ret;
 }
 
-ssc::kinematics::Wrench ResistanceCurveForceModel::operator()(const BodyStates& states, const double ) const
+Vector6d ResistanceCurveForceModel::get_force(const BodyStates& states, const double t, const EnvironmentAndFrames& env, const std::map<std::string,double>& commands) const
 {
     ssc::kinematics::Vector6d tau = ssc::kinematics::Vector6d::Zero();
     tau(0) = -pimpl->get_resistance(states.u());
-    return ssc::kinematics::Wrench(states.hydrodynamic_forces_calculation_point, tau);
+    return tau;
 }

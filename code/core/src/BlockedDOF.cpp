@@ -43,7 +43,7 @@ std::ostream& operator<<(std::ostream& os, const BlockableState& s)
     return os;
 }
 
-typedef TR1(shared_ptr)<ssc::interpolation::Interpolator> Interpolator;
+typedef std::shared_ptr<ssc::interpolation::Interpolator> Interpolator;
 
 class Builder
 {

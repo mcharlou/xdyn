@@ -8,17 +8,14 @@
 #ifndef GMFORCEMODEL_HPP_
 #define GMFORCEMODEL_HPP_
 
-#include "ImmersedSurfaceForceModel.hpp"
 #include <ssc/kinematics.hpp>
+
+#include "ImmersedSurfaceForceModel.hpp"
 
 #include "EnvironmentAndFrames.hpp"
 
 class Body;
 
-/** \brief Provides an interface to QuadraticDampingForceModel & LinearDampingForceModel
- *  \addtogroup model_wrappers
- *  \ingroup model_wrappers
- */
 class GMForceModel : public ImmersedSurfaceForceModel
 {
     public:
@@ -42,24 +39,23 @@ class GMForceModel : public ImmersedSurfaceForceModel
                                   const double t
                                  ) const;
         static Yaml parse(const std::string& yaml);
-        ssc::kinematics::Wrench operator()(const BodyStates& states, const double t) const;
+        Vector6d get_force(const BodyStates& states, const double t, const EnvironmentAndFrames& env, const std::map<std::string,double>& commands) const;
         void extra_observations(Observer& ) const;
         static std::string model_name();
         double get_GM() const;
 
     private:
         GMForceModel();
-        double get_gz_for_shifted_states(const BodyStates& states, const double t) const;
-        BodyStates get_shifted_states(const BodyStates& states,
-                const double t) const;
+        double get_gz_for_shifted_states(const BodyStates& states, const double t, const EnvironmentAndFrames& env) const;
+        BodyStates get_shifted_states(const BodyStates& states, const double t) const;
         double pe(const BodyStates& states, const std::vector<double>& x, const EnvironmentAndFrames& env) const;
 
         ForcePtr underlying_hs_force_model;
         double dphi;
-        EnvironmentAndFrames env;
-        TR1(shared_ptr)<double> GM;
-        TR1(shared_ptr)<double> GZ;
-        TR1(shared_ptr)<Body> body_for_gm;
+        // TODO: storing data behind pointers just for the sake of violating constness is bad practice, this should be updated to reflect the changes in ForceModel
+        std::shared_ptr<double> GM;
+        std::shared_ptr<double> GZ;
+        std::shared_ptr<Body> body_for_gm;
 };
 
 #endif /* GMFORCEMODEL_HPP_ */

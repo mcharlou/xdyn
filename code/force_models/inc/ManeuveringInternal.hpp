@@ -21,7 +21,7 @@ namespace maneuvering
     typedef std::function<double(const BodyStates&, ssc::data_source::DataSource&, const double)> Function;
     class Node;
 
-    typedef TR1(shared_ptr)<Node> NodePtr;
+    typedef std::shared_ptr<Node> NodePtr;
 
     class AbstractNodeVisitor;
 
@@ -101,6 +101,16 @@ namespace maneuvering
             void accept(AbstractNodeVisitor& visitor) const;
             double get_max() const;
             double get_min() const;
+    };
+
+    class Atan : public Unary
+    {
+    	public:
+    		Atan(const NodePtr& operand);
+    		Function get_lambda() const;
+    		void accept(AbstractNodeVisitor& visitor) const;
+    		double get_max() const;
+    		double get_min() const;
     };
 
     class Abs : public Unary
@@ -305,6 +315,7 @@ namespace maneuvering
     NodePtr make_constant(const double val);
     NodePtr make_cos(const NodePtr& operand);
     NodePtr make_sin(const NodePtr& operand);
+    NodePtr make_atan(const NodePtr& operand);
     NodePtr make_abs(const NodePtr& operand);
     NodePtr make_log(const NodePtr& operand);
     NodePtr make_sum(const NodePtr& lhs, const NodePtr& rhs);

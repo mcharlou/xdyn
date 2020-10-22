@@ -5,22 +5,27 @@
  *      Author: cady
  */
 
-#include "EnvironmentAndFrames.hpp"
+#include <vector>
+#include <string>
+#include <ssc/kinematics.hpp>
+using namespace ssc::kinematics;
 
 #include "InvalidInputException.hpp"
 #include "SurfaceElevationInterface.hpp"
 #include "Observer.hpp"
+#include "Body.hpp"
 
-#include <ssc/kinematics.hpp>
-using namespace ssc::kinematics;
+#include "EnvironmentAndFrames.hpp"
 
 EnvironmentAndFrames::EnvironmentAndFrames() : w(),
+											   wind(),
                                                k(KinematicsPtr(new Kinematics())),
                                                rho(0),
                                                nu(0),
                                                g(0),
-                                               rot()
-{
+											   air_density(0),
+                                               rot("angle", {"z", "y'", "x''"})
+{ // useless code since this constructor takes no argument
     if (rho<0.0)
     {
         THROW(__PRETTY_FUNCTION__, InvalidInputException, "rho can not be negative");
@@ -36,21 +41,21 @@ EnvironmentAndFrames::EnvironmentAndFrames() : w(),
 }
 
 void EnvironmentAndFrames::feed(
-        Observer& observer, double t,
-        const std::vector<BodyPtr>& bodies, const StateType& state) const
+        Observer& observer, double t/*,
+        const std::vector<BodyPtr>& bodies, const StateType& state*/) const
 {
     try
     {
         if (w.get())
         {
-            for (size_t i = 0 ; i < bodies.size() ; ++i)
+            /*for (size_t i = 0 ; i < bodies.size() ; ++i)
             {
                 bodies[i]->update_kinematics(state,k);
-            }
+            }*/
             const auto kk = w->get_waves_on_mesh_as_a_grid(k, t);
             if(kk.z.size()!=0)
             {
-                const auto address = DataAddressing(std::vector<std::string>{"waveElevation"},"waves");
+                const auto address = DataAddressing({"waveElevation"},"waves");
                 observer.write(kk, address);
             }
         }

@@ -28,7 +28,7 @@ include_directories(${mesh_INCLUDE_DIRS})
 include_directories(${environment_models_INCLUDE_DIRS})
 include_directories(${observers_and_api_INCLUDE_DIRS})
 include_directories(${force_models_INCLUDE_DIRS})
-
+include_directories(${controllers_INCLUDE_DIRS})
 include_directories(SYSTEM ${eigen_INCLUDE_DIRS})
 include_directories(${hdb_interpolators_INCLUDE_DIRS})
 include_directories(${test_data_generator_INCLUDE_DIRS})

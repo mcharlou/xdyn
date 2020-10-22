@@ -9,15 +9,17 @@
 #define SIM_HPP_
 
 #include <vector>
+#include <memory>
+#include <boost/timer/timer.hpp>
 #include <ssc/data_source.hpp>
 #include <ssc/kinematics.hpp>
+
 #include "Body.hpp"
 #include "StateMacros.hpp"
 #include "EnvironmentAndFrames.hpp"
-#include "ForceModel.hpp"
-#include "ControllableForceModel.hpp"
 #include "SurfaceElevationGrid.hpp"
 #include "State.hpp"
+#include "AbstractController.hpp"
 
 typedef std::map<std::string, std::map< std::string,ssc::kinematics::Vector6d > > OuputtedForces;
 typedef std::vector<std::pair<std::string,std::vector<std::string> > > VectorOfStringModelForEachBody;
@@ -28,8 +30,8 @@ class Sim
 {
     public:
         Sim(const std::vector<BodyPtr>& bodies,
-            const std::vector<ListOfForces>& forces,
-            const std::vector<ListOfControlledForces>& controllable_forces,
+            //const std::vector<ListOfForces>& forces,
+            //const std::vector<ListOfControlledForces>& controllable_forces,
             const EnvironmentAndFrames& env,
             const StateType& x,
             const ssc::data_source::DataSource& command_listener);
@@ -38,6 +40,7 @@ class Sim
 
         void update_discrete_states();
         void update_continuous_states();
+        void update_forces(const double t);
 
         /**  \brief Serialize wave data on mesh for an ASCII observer
           *  \details Called by SimCsvObserver at each time step. The aim is to
@@ -57,15 +60,16 @@ class Sim
 
         void set_bodystates(const std::vector<State>& states);
 
-        std::map<std::string,std::vector<ForcePtr> > get_forces() const;
+        //std::map<std::string,std::vector<ForcePtr> > get_forces() const;
         std::vector<BodyPtr> get_bodies() const;
         EnvironmentAndFrames get_env() const;
 
         void set_command_listener(const std::map<std::string, double>& new_commands);
+        void force_commands(const std::map<std::string, double>& commands);
 
         void reset_history();
     private:
-        ssc::kinematics::UnsafeWrench sum_of_forces(const StateType& x, const BodyPtr& body, const double t);
+        //ssc::kinematics::UnsafeWrench sum_of_forces(const StateType& x, const BodyPtr& body, const double t);
 
         /**  \brief Make sure quaternions can be converted to Euler angles
           *  \details Normalization takes place at each time step, which is not
@@ -76,7 +80,7 @@ class Sim
                                        ) const;
 
         class Impl;
-        TR1(shared_ptr)<Impl> pimpl;
+        std::shared_ptr<Impl> pimpl;
 };
 
 #endif /* SIM_HPP_ */

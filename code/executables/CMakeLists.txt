@@ -35,6 +35,7 @@ INCLUDE_DIRECTORIES(${observers_and_api_INCLUDE_DIRS})
 INCLUDE_DIRECTORIES(${hdb_interpolators_INCLUDE_DIRS})
 INCLUDE_DIRECTORIES(${gz_curves_INCLUDE_DIRS})
 INCLUDE_DIRECTORIES(${interface_hdf5_INCLUDE_DIRS})
+INCLUDE_DIRECTORIES(${controllers_INCLUDE_DIRS})
 
 CONFIGURE_FILE(
         src/display_command_line_arguments.cpp
@@ -57,6 +58,7 @@ TARGET_LINK_LIBRARIES(xdyn
         x-dyn
         ${Boost_PROGRAM_OPTIONS_LIBRARY}
         boost_program_options_descriptions_static
+        ${Boost_TIMER_LIBRARY}
         ${GRPC_GRPCPP_UNSECURE}
         ${PROTOBUF_LIBPROTOBUF}
         )
@@ -77,6 +79,7 @@ ADD_EXECUTABLE(test_hs
         $<TARGET_OBJECTS:core>
         $<TARGET_OBJECTS:parser_extensions>
         $<TARGET_OBJECTS:force_models>
+        $<TARGET_OBJECTS:controllers>
         $<TARGET_OBJECTS:environment_models>
         $<TARGET_OBJECTS:external_file_formats>
         $<TARGET_OBJECTS:mesh>
@@ -168,6 +171,27 @@ TARGET_LINK_LIBRARIES(xdyn-for-cs
         ${GRPC_GRPCPP_UNSECURE}
         ${PROTOBUF_LIBPROTOBUF}
         )
+        
+ADD_EXECUTABLE(xdyn-server
+        ${CMAKE_CURRENT_BINARY_DIR}/display_command_line_arguments.cpp
+        src/parse_XdynForCSCommandLineArguments.cpp
+        src/build_observers_description.cpp
+        src/report_xdyn_exceptions_to_user.cpp
+        src/XdynForCSCommandLineArguments.cpp
+        src/XdynCommandLineArguments.cpp
+        src/MessageHandler.cpp
+        src/ZMQServer.cpp
+        src/xdyn_server.cpp
+        )
+
+TARGET_LINK_LIBRARIES(xdyn-server
+        x-dyn
+        ${Boost_PROGRAM_OPTIONS_LIBRARY}
+        boost_program_options_descriptions_static
+        ${GRPC_GRPCPP_UNSECURE}
+        ${PROTOBUF_LIBPROTOBUF}
+        zmq
+        )
 
 ADD_EXECUTABLE(xdyn-for-me
         ${CMAKE_CURRENT_BINARY_DIR}/display_command_line_arguments.cpp
@@ -194,6 +218,8 @@ INSTALL(TARGETS xdyn-for-cs
 INSTALL(TARGETS gz
         RUNTIME DESTINATION ${RUNTIME_OUTPUT_DIRECTORY})
 INSTALL(TARGETS xdyn-for-me
+        RUNTIME DESTINATION ${RUNTIME_OUTPUT_DIRECTORY})
+INSTALL(TARGETS xdyn-server
         RUNTIME DESTINATION ${RUNTIME_OUTPUT_DIRECTORY})
 FILE(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/demos")
 

@@ -8,11 +8,11 @@
 #ifndef OBSERVERS_AND_API_INC_SIMSERVERINPUTS_HPP_
 #define OBSERVERS_AND_API_INC_SIMSERVERINPUTS_HPP_
 
-struct YamlSimServerInputs;
 
 #include <map>
 #include <string>
 #include "State.hpp"
+#include "YamlSimServerInputs.hpp"
 
 struct SimServerInputs
 {
@@ -23,7 +23,9 @@ struct SimServerInputs
     StateType state_at_t;
     State state_history_except_last_point;
     State full_state_history;
+    bool reset_history;
     std::map<std::string, double> commands;
+    Request request;
     private: SimServerInputs(); // Disabled
 };
 

@@ -4,13 +4,13 @@ windows: windows_gccx_posix
 debian: debian_10_release_gcc_8
 debug: debian_9_debug_gcc_6
 
-.PHONY: fetch-ssc-windows cmake-windows package-windows windows doc
-
+.PHONY: fetch-ssc-windows cmake-windows package-windows windows doc debian10_common
 
 cmake-debian: BUILD_TYPE = Release
 cmake-debian: BUILD_DIR = build_deb10
 cmake-debian: CPACK_GENERATOR = DEB
-cmake-debian: DOCKER_IMAGE = sirehna/base-image-debian10-gcc8-xdyn
+# cmake-debian: DOCKER_IMAGE = sirehna/base-image-debian10-gcc8-xdyn
+cmake-debian: DOCKER_IMAGE = debian10_gcc8_zmq_base
 cmake-debian: BOOST_ROOT = /opt/boost
 cmake-debian: SSC_ROOT = /opt/ssc
 cmake-debian: ci_env=
@@ -65,23 +65,37 @@ debian_9_coverage_gcc_6: cmake-debian-target build-debian test-debian
 
 debian_10_release_gcc_8: BUILD_TYPE = Release
 debian_10_release_gcc_8: BUILD_DIR = build_deb10_gcc8
-debian_10_release_gcc_8: CPACK_GENERATOR = DEB
-debian_10_release_gcc_8: DOCKER_IMAGE = sirehna/base-image-debian10-gcc8-xdyn
-debian_10_release_gcc_8: BOOST_ROOT = /opt/boost
-debian_10_release_gcc_8: SSC_ROOT = /opt/ssc
-debian_10_release_gcc_8: HDF5_DIR = /usr/local/hdf5/share/cmake
-debian_10_release_gcc_8: ci_env=
-debian_10_release_gcc_8: cmake-debian-target build-debian test-debian
+# debian_10_release_gcc_8: CPACK_GENERATOR = DEB
+# debian_10_release_gcc_8: DOCKER_IMAGE = debian10_dev_ssc
+# debian_10_release_gcc_8: BOOST_ROOT = /opt/boost
+# debian_10_release_gcc_8: HDF5_DIR = /opt/HDF5/share/cmake
+# debian_10_release_gcc_8: ci_env=
+# debian_10_release_gcc_8: SSC_ROOT = /opt/ssc
+debian_10_release_gcc_8: cmake-debian-target build-debian
 
 debian_10_debug_gcc_8: BUILD_TYPE = Debug
 debian_10_debug_gcc_8: BUILD_DIR = build_deb10_gcc8_debug
-debian_10_debug_gcc_8: CPACK_GENERATOR = DEB
-debian_10_debug_gcc_8: DOCKER_IMAGE = sirehna/base-image-debian10-gcc8-xdyn
-debian_10_debug_gcc_8: BOOST_ROOT = /opt/boost
-debian_10_debug_gcc_8: SSC_ROOT = /opt/ssc
-debian_10_debug_gcc_8: HDF5_DIR = /usr/local/hdf5/share/cmake
-debian_10_debug_gcc_8: ci_env=
-debian_10_debug_gcc_8: cmake-debian-target build-debian test-debian
+# debian_10_debug_gcc_8: CPACK_GENERATOR = DEB
+# debian_10_debug_gcc_8: DOCKER_IMAGE = debian10_dev_ssc
+# debian_10_debug_gcc_8: BOOST_ROOT = /opt/boost
+# debian_10_debug_gcc_8: HDF5_DIR = /opt/HDF5/share/cmake
+# debian_10_debug_gcc_8: ci_env=
+# debian_10_debug_gcc_8: SSC_ROOT = /opt/ssc
+debian_10_debug_gcc_8: cmake-debian-target build-debian
+
+debian_10%: CPACK_GENERATOR = DEB
+debian_10%: BOOST_ROOT = /opt/boost
+debian_10%: HDF5_DIR = /opt/HDF5/share/cmake
+debian_10%: DOCKER_IMAGE = debian10_base_dev
+debian_10%: SSC_ROOT = /opt/ssc
+debian_10%: SSC_HOST_ROOT = /home/mcharlou2016/xdyn/ssc_install/ssc
+debian_10%: ci_env=
+
+test-debian_10: BUILD_TYPE = Release
+test-debian_10: BUILD_DIR = build_deb10_gcc8
+test-debian_10: DOCKER_IMAGE = debian10_base_dev
+test-debian_10: ci_env=
+test-debian_10: test-debian
 
 windows_gccx_posix: BUILD_TYPE=Release
 windows_gccx_posix: BUILD_DIR=build_win_posix
@@ -151,10 +165,11 @@ test-windows:
             wine winecfg;\
             wine ./run_all_tests --gtest_filter=-*ocket*:*ot_throw_if_CSV_file_exists"
 
+
 cmake-debian-target: SHELL:=/bin/bash
 cmake-debian-target: code/yaml-cpp/CMakeLists.txt
-	docker pull $(DOCKER_IMAGE) || true
-	docker run $(ci_env) --rm -u $(shell id -u ):$(shell id -g ) -v $(shell pwd):/opt/share -w /opt/share $(DOCKER_IMAGE) /bin/bash -c \
+#	docker pull $(DOCKER_IMAGE) || true
+	docker run $(ci_env) --rm -u $(shell id -u ):$(shell id -g ) -v $(shell pwd):/opt/share -v $(SSC_HOST_ROOT):$(SSC_ROOT) -w /opt/share --cpus 10 $(DOCKER_IMAGE) /bin/bash -c \
            "cd /opt/share &&\
             mkdir -p $(BUILD_DIR) &&\
             cd $(BUILD_DIR) &&\
@@ -173,7 +188,7 @@ cmake-debian-target: code/yaml-cpp/CMakeLists.txt
 
 build-debian: SHELL:=/bin/bash
 build-debian:
-	docker run $(ci_env) --rm -u $(shell id -u ):$(shell id -g ) -v $(shell pwd):/opt/share -w /opt/share $(DOCKER_IMAGE) /bin/bash -c \
+	docker run $(ci_env) --rm -u $(shell id -u ):$(shell id -g ) -v $(shell pwd):/opt/share -v $(SSC_HOST_ROOT):$(SSC_ROOT) -w /opt/share --cpus 10 $(DOCKER_IMAGE) /bin/bash -c \
            "cd /opt/share &&\
             mkdir -p $(BUILD_DIR) &&\
             cd $(BUILD_DIR) &&\
@@ -181,9 +196,9 @@ build-debian:
 
 test-debian: SHELL:=/bin/bash
 test-debian:
-	docker run $(ci_env) --rm -u $(shell id -u ):$(shell id -g ) -v $(shell pwd):/opt/share -w /opt/share $(DOCKER_IMAGE) /bin/bash -c \
+	docker run $(ci_env) --rm -u $(shell id -u ):$(shell id -g ) -v $(shell pwd):/opt/share -v $(SSC_HOST_ROOT):$(SSC_ROOT) -w /opt/share $(DOCKER_IMAGE) /bin/bash -c \
            "cd $(BUILD_DIR) &&\
-            ./run_all_tests &&\
+            ./run_all_tests --gtest_break_on_failure &&\
             if [[ $(BUILD_TYPE) == Coverage ]];\
             then\
             echo Coverage;\

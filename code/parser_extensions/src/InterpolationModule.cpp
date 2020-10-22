@@ -7,11 +7,13 @@
 
 #include "InterpolationModule.hpp"
 
+#include <iostream>
+
 InterpolationModule::InterpolationModule(ssc::data_source::DataSource* const data_source,
                             const std::string& module_name,
                             const std::string& xname_,
                             const std::string& yname_,
-                            const TR1(shared_ptr)<ssc::interpolation::LinearInterpolationVariableStep>& I_) : ssc::data_source::DataSourceModule(data_source, module_name), xname(xname_), yname(yname_), I(I_)
+                            const std::shared_ptr<ssc::interpolation::LinearInterpolationVariableStep>& I_) : ssc::data_source::DataSourceModule(data_source, module_name), xname(xname_), yname(yname_), I(I_)
 {
 }
 

@@ -7,6 +7,5 @@
 
 #include "WaveModelBuilder.hpp"
 
-
 WaveModelBuilderInterface::WaveModelBuilderInterface(){}
 WaveModelBuilderInterface::~WaveModelBuilderInterface(){}

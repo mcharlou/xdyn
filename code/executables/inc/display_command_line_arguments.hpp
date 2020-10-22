@@ -17,6 +17,8 @@ struct BooleanArguments
     bool verbose;
     bool show_help;
     bool show_websocket_debug_information;
+    bool inline_yaml;
+    bool docker_localhost;
 };
 
 #include "boost/program_options.hpp"

@@ -4,7 +4,7 @@
 #include "Observer.hpp"
 #include "DiscreteDirectionalWaveSpectrum.hpp"
 #include <ssc/macros.hpp>
-#include TR1INC(memory)
+#include <memory>
 #include "H5Cpp.h"
 
 struct Hdf5Addressing
@@ -45,7 +45,7 @@ class Hdf5Observer : public Observer
         std::map<std::string, H5::DataType> name2datatype;
         std::map<std::string, H5::DataSpace> name2dataspace;
 
-        TR1(shared_ptr)<Hdf5WaveObserver> wave_serializer;
+        std::shared_ptr<Hdf5WaveObserver> wave_serializer;
 };
 
 #endif

@@ -12,6 +12,7 @@
 #include <ssc/json/JSONException.hpp>
 #include <ssc/solver.hpp>
 #include <ssc/websocket.hpp>
+#include <zmq.hpp>
 
 #include <functional>
 #include <boost/program_options.hpp>
@@ -77,6 +78,11 @@ void report_xdyn_exceptions_to_user(const std::function<void(void)>& f, const st
         ss << "There is a syntax problem with the YAML file line " << e.mark.line+1 << ", column " << e.mark.column+1 << ": " << e.msg << "." << std::endl
            << "Please note that as all YAML files supplied on the command-line are concatenated, the line number given here corresponds to the line number in the concatenated YAML." << std::endl;
         outputter(ss.str());
+    }
+    catch(zmq::error_t& e)
+    {
+    	ss << "An error occurred with the ZMQ messaging library: " << e.what() << std::endl;
+    	outputter(ss.str());
     }
     catch(std::exception& e)
     {

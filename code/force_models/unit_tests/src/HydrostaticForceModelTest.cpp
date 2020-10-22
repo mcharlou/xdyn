@@ -42,7 +42,7 @@ EnvironmentAndFrames HydrostaticForceModelTest::get_environment_and_frames() con
     env.k = ssc::kinematics::KinematicsPtr(new ssc::kinematics::Kinematics());
     env.k->add(ssc::kinematics::Transform(ssc::kinematics::Point("NED"), "mesh(" BODY ")"));
     env.k->add(ssc::kinematics::Transform(ssc::kinematics::Point("NED"), BODY));
-    TR1(shared_ptr)<ssc::kinematics::PointMatrix> mesh;
+    ssc::kinematics::PointMatrixPtr mesh;
     env.w = SurfaceElevationPtr(new DefaultSurfaceElevation(0, mesh));
     return env;
 }
@@ -65,7 +65,8 @@ VectorOfVectorOfPoints HydrostaticForceModelTest::get_points() const
 
 TEST_F(HydrostaticForceModelTest, example)
 {
-    const EnvironmentAndFrames env = get_environment_and_frames();
+	const EnvironmentAndFrames env = get_environment_and_frames();
+	ssc::data_source::DataSource ds;
     const auto points = get_points();
 
     BodyStates states = get_body(BODY, points)->get_states();
@@ -77,7 +78,7 @@ TEST_F(HydrostaticForceModelTest, example)
     ASSERT_EQ("non-linear hydrostatic (fast)",F.model_name());
     const double t = a.random<double>();
     body->update_intersection_with_free_surface(env, t);
-    const ssc::kinematics::Wrench Fhs = F(body->get_states(), t);
+    const ssc::kinematics::Wrench Fhs = F(body->get_states(), t, env, ds);
 //! [HydrostaticModuleTest example]
 //! [HydrostaticModuleTest expected output]
     const double dz = 2./3;
@@ -117,15 +118,16 @@ TEST_F(HydrostaticForceModelTest, example)
  */
 TEST_F(HydrostaticForceModelTest, DISABLED_oriented_fully_immerged_rectangle)
 {
-    EnvironmentAndFrames env;
+	EnvironmentAndFrames env;
     env.g = 9.81;
     env.rho = 1024;
     env.k = ssc::kinematics::KinematicsPtr(new ssc::kinematics::Kinematics());
     const ssc::kinematics::Point G("NED",0,0,0);
     env.k->add(ssc::kinematics::Transform(ssc::kinematics::Point("NED"), "mesh(" BODY ")"));
     env.k->add(ssc::kinematics::Transform(ssc::kinematics::Point("NED"), BODY));
-    TR1(shared_ptr)<ssc::kinematics::PointMatrix> mesh;
+    ssc::kinematics::PointMatrixPtr mesh;
     env.w = SurfaceElevationPtr(new DefaultSurfaceElevation(0, mesh));
+    ssc::data_source::DataSource ds;
 
     const auto points = two_triangles_immerged();
 
@@ -147,7 +149,7 @@ TEST_F(HydrostaticForceModelTest, DISABLED_oriented_fully_immerged_rectangle)
     ASSERT_DOUBLE_EQ(0.0, states.mesh_to_body(2,1));
 
     FastHydrostaticForceModel F(BODY, env);
-    const ssc::kinematics::Wrench Fhs = F(states,a.random<double>());
+    const ssc::kinematics::Wrench Fhs = F(states, a.random<double>(), env, ds);
 
     ASSERT_EQ(3,(size_t)states.mesh->nodes.rows());
     ASSERT_EQ(4,(size_t)states.mesh->nodes.cols());
@@ -203,13 +205,13 @@ TEST_F(HydrostaticForceModelTest, DISABLED_oriented_fully_immerged_rectangle)
 
 TEST_F(HydrostaticForceModelTest, potential_energy_half_immersed_cube_fast)
 {
-    EnvironmentAndFrames env;
+	EnvironmentAndFrames env;
     env.g = 9.81;
     env.rho = 1024;
     env.k = ssc::kinematics::KinematicsPtr(new ssc::kinematics::Kinematics());
     env.k->add(ssc::kinematics::Transform(ssc::kinematics::Point("NED"), "mesh(" BODY ")"));
     env.k->add(ssc::kinematics::Transform(ssc::kinematics::Point("NED"), BODY));
-    TR1(shared_ptr)<ssc::kinematics::PointMatrix> mesh;
+    ssc::kinematics::PointMatrixPtr mesh;
     env.w = SurfaceElevationPtr(new DefaultSurfaceElevation(0, mesh));
 
     BodyStates states = get_body(BODY, unit_cube())->get_states();
@@ -219,20 +221,20 @@ TEST_F(HydrostaticForceModelTest, potential_energy_half_immersed_cube_fast)
     for (size_t i = 0 ; i < 4 ; ++i) dz.push_back(-0.5);
     FastHydrostaticForceModel F(BODY, env);
     states.intersector->update_intersection_with_free_surface(dz,dz);
-    const double Ep = F.potential_energy(states, x);
+    const double Ep = F.potential_energy(states, env, x);
     ASSERT_DOUBLE_EQ(-1024*0.5*9.81*0.25, Ep);
 }
 
 TEST_F(HydrostaticForceModelTest, potential_energy_half_immersed_cube_exact)
 {
-    EnvironmentAndFrames env;
+	EnvironmentAndFrames env;
     env.g = 9.81;
     env.rho = 1024;
     env.k = ssc::kinematics::KinematicsPtr(new ssc::kinematics::Kinematics());
     const ssc::kinematics::Point G("NED",0,2,2./3.);
     env.k->add(ssc::kinematics::Transform(ssc::kinematics::Point("NED"), "mesh(" BODY ")"));
     env.k->add(ssc::kinematics::Transform(ssc::kinematics::Point("NED"), BODY));
-    TR1(shared_ptr)<ssc::kinematics::PointMatrix> mesh;
+    ssc::kinematics::PointMatrixPtr mesh;
     env.w = SurfaceElevationPtr(new DefaultSurfaceElevation(0, mesh));
 
     BodyStates states = get_body(BODY, unit_cube())->get_states();
@@ -243,6 +245,6 @@ TEST_F(HydrostaticForceModelTest, potential_energy_half_immersed_cube_exact)
     states.intersector->update_intersection_with_free_surface(dz,dz);
 
     ExactHydrostaticForceModel F(BODY, env);
-    const double Ep = F.potential_energy(states, x);
+    const double Ep = F.potential_energy(states, env, x);
     ASSERT_DOUBLE_EQ(-1024*0.5*9.81*0.25, Ep);
 }

@@ -10,6 +10,7 @@
 
 #include "YamlCoordinates.hpp"
 #include "YamlAngle.hpp"
+#include <ssc/kinematics.hpp>
 
 #include <ostream>
 #include <string>
@@ -18,6 +19,8 @@ struct YamlPosition
 {
     YamlPosition();
     YamlPosition(const YamlCoordinates& c, const YamlAngle& a, const std::string& frame);
+    YamlPosition(const YamlCoordinates& c, const std::string& frame);
+    YamlPosition(const ssc::kinematics::Point point);
     YamlCoordinates coordinates;
     YamlAngle angle;
     std::string frame;

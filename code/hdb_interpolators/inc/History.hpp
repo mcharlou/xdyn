@@ -68,6 +68,25 @@ class History
           */
         double get_duration() const;
 
+        /**  \brief Integral over duration
+         *   \details Computes the integral of the history over its recorded duration (not Tmax)
+         *   \returns Integral of the history over its duration
+         */
+        double integrate_over_duration() const;
+
+        //template<typename T>
+        //std::pair<double,double> operator[](int index) const;
+        /*{
+            if(index>=0)
+            {
+                return L[(size_t)index];
+            }
+            else
+            {
+                return L[L.size()+(size_t)index];
+            }
+        }*/
+
         std::pair<double,double> operator[](const int index) const;
         friend std::ostream& operator<<(std::ostream& os, const History& h);
 
@@ -78,13 +97,16 @@ class History
         std::vector<double> get_values(const double tmax) const;
         std::vector<double> get_dates(const double tmax) const;
         double get_current_time() const;
+        double get_last_time_step() const;
+        size_t find_bracketing_position(const double t) const;
+
+        void set_Tmax(const double Tmax);
 
     private:
         typedef std::pair<double,double> TimeValue;
         typedef std::vector<TimeValue> Container;
 
         void throw_if_already_added(const size_t idx, const double t, const double val) const;
-        size_t find_braketing_position(const double t) const;
         double interpolate_value_in_interval(const size_t idx, const double t) const;
         double get_value(const double tau) const;
         void shift_oldest_recorded_instant_if_necessary();

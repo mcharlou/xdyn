@@ -22,6 +22,7 @@ struct XdynCommandLineArguments
     double tstart;
     double tend;
     bool catch_exceptions;
+    bool verbose;
     bool empty() const;
 };
 

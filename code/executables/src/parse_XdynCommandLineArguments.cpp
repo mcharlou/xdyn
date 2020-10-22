@@ -49,6 +49,7 @@ po::options_description attach_command_line_arguments_to_options_description(Xdy
         ("output,o",   po::value<std::string>(&input_data.output_filename),              "Name of the output file where all computed data will be exported.\nPossible values/extensions are csv, tsv, json, hdf5, h5, ws")
         ("waves,w",    po::value<std::string>(&input_data.wave_output),                  "Name of the output file where the wave heights will be stored ('output' section of the YAML file). In case output is made to a HDF5 file or web sockets, this option appends the wave height to the main output")
         ("debug,d",                                                                      "Used by the application's support team to help error diagnosis. Allows us to pinpoint the exact location in code where the error occurred (do not catch exceptions), eg. for use in a debugger.")
+		("verbose,v", 																	 "Use this argument to display the execution time at the end of the computation.")
     ;
     return desc;
 }
@@ -60,6 +61,7 @@ int parse_command_line_for_xdyn(int argc, char **argv, XdynCommandLineArguments&
     const po::options_description desc = attach_command_line_arguments_to_options_description(input_data);
     const BooleanArguments has = parse_input(argc, argv, desc);
     input_data.catch_exceptions = not(has.debug);
+    input_data.verbose = has.verbose;
     if (has.help)
     {
         print_usage(std::cout, desc, argv[0], "This is a ship simulator");

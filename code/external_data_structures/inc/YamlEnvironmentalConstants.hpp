@@ -14,6 +14,7 @@ struct YamlEnvironmentalConstants
     double g;
     double rho;
     double nu;
+    double air_density;
 };
 
 #endif /* YAMLENVIRONMENTALCONSTANTS_HPP_ */

@@ -25,6 +25,8 @@ struct YamlRadiationDamping
     double              omega_max;                                            //!< Upper bound of the cosine integral used to calculate the retardation functions from the radiation dampings
     double              tau_min;                                              //!< Lower bound of the convolution integral, to calculate Fr
     double              tau_max;                                              //!< Upper bound of the convolution integral, to calculate Fr
+    bool 				forward_speed_correction;			      			  //!< Should the program consider the input as zero forward speed results and apply a forward speed correction
+    bool				suppress_constant_part;								  //!< Should the program suppress the part of the radiation damping corresponding to a zero-frequency movement (convolution of the retardation function with a constant speed)
     bool                output_Br_and_K;                                      //!< Should the program output
     YamlCoordinates     calculation_point_in_body_frame;                      //!< Where were the damping matrices (read from the HDB file) computed?
 };

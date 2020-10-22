@@ -6,6 +6,8 @@
  */
 
 #include "builders.hpp"
+
+#include "ActualWindModel.hpp"
 #include "DefaultSurfaceElevation.hpp"
 #include "environment_parsers.hpp"
 #include "EnvironmentAndFrames.hpp"
@@ -14,6 +16,7 @@
 #include "SurfaceElevationFromGRPC.hpp"
 #include "InvalidInputException.hpp"
 #include "YamlGRPC.hpp"
+#include "DefaultWindModel.hpp"
 
 boost::optional<SurfaceElevationInterfacePtr> SurfaceElevationBuilder<DefaultSurfaceElevation>::try_to_parse(const std::string& model, const std::string& yaml) const
 {
@@ -203,4 +206,88 @@ boost::optional<SurfaceElevationInterfacePtr> SurfaceElevationBuilder<SurfaceEle
         ret.reset(SurfaceElevationInterfacePtr(new SurfaceElevationFromGRPC(input, output_mesh)));
     }
     return ret;
+}
+
+boost::optional<WindModelInterfacePtr> WindModelBuilder<DefaultWindModel>::try_to_parse(const std::string& model, const std::string& yaml) const
+{
+    (void)yaml;
+    boost::optional<WindModelInterfacePtr> ret;
+    if (model == "no wind")
+    {
+	WindModelInterfacePtr p(new DefaultWindModel());// calling default constructor for "no wind"
+	ret.reset(p);
+    }
+    return ret;
+}
+
+WindMeanVelocityProfilePtr WindModelBuilder<ActualWindModel>::parse_wind_velocity_profile(const YamlWindProfile& profile) const
+{
+    for (auto that_parser = velocity_profile_parsers->begin() ; that_parser != velocity_profile_parsers->end() ; ++that_parser)
+    {
+        boost::optional<WindMeanVelocityProfilePtr> w;
+        try
+        {
+            w = (*that_parser)->try_to_parse(profile.model, profile.model_yaml);
+        }
+        catch (const InvalidInputException& exception)
+        {
+            THROW(__PRETTY_FUNCTION__, InvalidInputException, "Problem when parsing wind mean velocity profile '" << profile.model << "': " << exception.get_message());
+        }
+        if (w) return w.get();
+    }
+    THROW(__PRETTY_FUNCTION__, InvalidInputException, "The wind mean velocity profile specified in the YAML file is not understood by the simulator ('" << profile.model << "'): either it is misspelt or this simulator version is outdated.");
+    return WindMeanVelocityProfilePtr();
+}
+
+WindTurbulenceModelPtr WindModelBuilder<ActualWindModel>::parse_wind_turbulence_model(const YamlWindTurbulence& turbulence) const
+{
+    for (auto that_parser = turbulence_model_parsers->begin() ; that_parser != turbulence_model_parsers->end() ; ++that_parser)
+    {
+        boost::optional<WindTurbulenceModelPtr> w;
+        try
+        {
+            w = (*that_parser)->try_to_parse(turbulence.model, turbulence.model_yaml);
+        }
+        catch (const InvalidInputException& exception)
+        {
+            THROW(__PRETTY_FUNCTION__, InvalidInputException, "Problem when parsing wind turbulence model '" << turbulence.model << "': " << exception.get_message());
+        }
+        if (w) return w.get();
+    }
+    THROW(__PRETTY_FUNCTION__, InvalidInputException, "The wind turbulence model specified in the YAML file is not understood by the simulator ('" << turbulence.model << "'): either it is misspelt or this simulator version is outdated.");
+    return WindTurbulenceModelPtr();
+}
+
+boost::optional<WindModelInterfacePtr> WindModelBuilder<ActualWindModel>::try_to_parse(const std::string& model, const std::string& yaml) const
+{
+    boost::optional<WindModelInterfacePtr> ret;
+    if (model == "wind")
+    {
+        const YamlWindModel input = parse_wind(yaml);
+        const WindMeanVelocityProfilePtr mean_velocity = parse_wind_velocity_profile(input.vertical_profile);
+        const WindTurbulenceModelPtr turbulence_model = parse_wind_turbulence_model(input.turbulence);
+        ret.reset(WindModelInterfacePtr(new ActualWindModel(mean_velocity,turbulence_model)));
+    }
+    return ret;
+}
+
+boost::optional<WindMeanVelocityProfilePtr> WindMeanVelocityProfileBuilder<UniformWindProfile>::try_to_parse(const std::string& model, const std::string& yaml) const
+{
+  boost::optional<WindMeanVelocityProfilePtr> ret;
+  if (model == "uniform")
+  {
+      const YamlUniformWind data = parse_uniform_wind(yaml);
+      ret.reset(WindMeanVelocityProfilePtr(new UniformWindProfile(data.direction,data.mean_velocity)));
+  }
+  return ret;
+}
+
+boost::optional<WindTurbulenceModelPtr> WindTurbulenceModelBuilder<NoWindTurbulence>::try_to_parse(const std::string& model, const std::string&) const
+{
+  boost::optional<WindTurbulenceModelPtr> ret;
+  if (model == "no turbulence")
+  {
+      ret.reset(WindTurbulenceModelPtr(new NoWindTurbulence()));
+  }
+  return ret;
 }

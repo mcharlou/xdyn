@@ -47,7 +47,7 @@ std::string replace_newlines_by_spaces(std::string str)
 
 struct SimulationMessage : public ssc::websocket::MessageHandler
 {
-    SimulationMessage(const TR1(shared_ptr)<XdynForME>& xdyn_for_me_, const bool verbose_) : xdyn_for_me(xdyn_for_me_), verbose(verbose_)
+    SimulationMessage(const std::shared_ptr<XdynForME>& xdyn_for_me_, const bool verbose_) : xdyn_for_me(xdyn_for_me_), verbose(verbose_)
     {
     }
     void operator()(const ssc::websocket::Message& msg)
@@ -96,7 +96,7 @@ struct SimulationMessage : public ssc::websocket::MessageHandler
     }
 
     private:
-        TR1(shared_ptr)<XdynForME> xdyn_for_me;
+        std::shared_ptr<XdynForME> xdyn_for_me;
         const bool verbose;
 };
 
@@ -105,9 +105,9 @@ void start_server(const XdynForMECommandLineArguments& input_data)
 {
     const ssc::text_file_reader::TextFileReader yaml_reader(input_data.yaml_filenames);
     const auto yaml = yaml_reader.get_contents();
-    TR1(shared_ptr)<XdynForME> sim_server (new XdynForME(yaml));
+    std::shared_ptr<XdynForME> sim_server (new XdynForME(yaml));
     SimulationMessage handler(sim_server, input_data.verbose);
-    TR1(shared_ptr)<ssc::websocket::Server> w(new ssc::websocket::Server(handler, input_data.port, input_data.show_websocket_debug_information));
+    std::shared_ptr<ssc::websocket::Server> w(new ssc::websocket::Server(handler, input_data.port, input_data.show_websocket_debug_information));
     std::cout << "Starting websocket server on " << ADDRESS << ":" << input_data.port << " (press Ctrl+C to terminate)" << std::endl;
     signal(SIGINT, inthand);
     while(!stop){}

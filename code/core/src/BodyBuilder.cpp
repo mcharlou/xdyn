@@ -5,7 +5,9 @@
  *      Author: cady
  */
 
-#include "BodyBuilder.hpp"
+#include <ssc/kinematics.hpp>
+#include <ssc/text_file_reader.hpp>
+
 #include "InvalidInputException.hpp"
 #include "BodyWithSurfaceForces.hpp"
 #include "BodyWithoutSurfaceForces.hpp"
@@ -13,9 +15,10 @@
 #include "MeshBuilder.hpp"
 #include "YamlBody.hpp"
 #include "yaml2eigen.hpp"
+#include "Body.hpp"
+#include "BodyStates.hpp"
 
-#include <ssc/kinematics.hpp>
-#include <ssc/text_file_reader.hpp>
+#include "BodyBuilder.hpp"
 
 bool isSymmetric(const Eigen::MatrixXd& m)
 {
@@ -44,9 +47,8 @@ bool isSymmetricDefinitePositive(const Eigen::MatrixXd& m)
     return true;
 }
 
-BodyBuilder::BodyBuilder(const YamlRotation& convention) : rotations(convention)
-{
-}
+BodyBuilder::BodyBuilder(const YamlRotation& convention) : rotations(convention), force_parsers()
+{}
 
 void BodyBuilder::change_mesh_ref_frame(BodyStates& states, const VectorOfVectorOfPoints& mesh) const
 {
@@ -64,14 +66,12 @@ void BodyBuilder::change_mesh_ref_frame(BodyStates& states, const VectorOfVector
     states.M = ssc::kinematics::PointMatrixPtr(new ssc::kinematics::PointMatrix(states.mesh->nodes, states.name));
 }
 
-BodyPtr BodyBuilder::build(const YamlBody& input, const VectorOfVectorOfPoints& mesh, const size_t idx, const double t0, const YamlRotation& convention, const double Tmax, const bool has_surface_forces) const
+BodyStates BodyBuilder::get_initial_states(const YamlBody& input, const VectorOfVectorOfPoints& mesh, const double t0) const
 {
-    BodyStates states(Tmax);
+	BodyStates states(0.);
     states.name = input.name;
     states.G = make_point(input.dynamics.centre_of_inertia);
-
     states.hydrodynamic_forces_calculation_point = make_point(input.dynamics.hydrodynamic_forces_calculation_point_in_body_frame, input.name);
-
     states.x_relative_to_mesh = input.position_of_body_frame_relative_to_mesh.coordinates.x;
     states.y_relative_to_mesh = input.position_of_body_frame_relative_to_mesh.coordinates.y;
     states.z_relative_to_mesh = input.position_of_body_frame_relative_to_mesh.coordinates.z;
@@ -84,14 +84,25 @@ BodyPtr BodyBuilder::build(const YamlBody& input, const VectorOfVectorOfPoints& 
     states.p.record(t0, input.initial_velocity_of_body_frame_relative_to_NED_projected_in_body.p);
     states.q.record(t0, input.initial_velocity_of_body_frame_relative_to_NED_projected_in_body.q);
     states.r.record(t0, input.initial_velocity_of_body_frame_relative_to_NED_projected_in_body.r);
+    states.low_frequency_velocity.update(states);
     states.intersector = MeshIntersectorPtr(new MeshIntersector(states.mesh));
-    states.convention = convention;
+    states.convention = rotations;
+    return states;
+}
 
-    BodyPtr ret;
+BodyPtr BodyBuilder::build(const YamlBody& input, const VectorOfVectorOfPoints& mesh, const size_t idx, const double t0, const EnvironmentAndFrames& env) const
+{
+	BodyStates states = get_initial_states(input, mesh, t0);
+
     const BlockedDOF blocked_states(input.blocked_dof,idx);
-    if (has_surface_forces) ret.reset(new BodyWithSurfaceForces(states,idx,blocked_states));
-    else                    ret.reset(new BodyWithoutSurfaceForces(states,idx,blocked_states));
-    return ret;
+    BodyPtr body(new Body(states,idx,blocked_states));
+
+    std::vector<ForcePtr> forces = get_forces(input, body->get_name(), env, force_parsers);
+    double Tmax = get_max_history_length(forces);
+    body->set_Tmax(Tmax);
+    body->set_forces(forces);
+
+    return body;
 }
 
 void BodyBuilder::add_inertia(BodyStates& states, const YamlDynamics6x6Matrix& rigid_body_inertia, const YamlDynamics6x6Matrix& added_mass) const
@@ -157,7 +168,50 @@ Eigen::Matrix<double,6,6> BodyBuilder::convert(const YamlDynamics6x6Matrix& M) c
     return ret;
 }
 
-BodyPtr BodyBuilder::build(const std::string& name, const VectorOfVectorOfPoints& mesh, const size_t idx, const double t0, const YamlRotation& convention, const double Tmax, const bool has_surface_forces) const
+ForcePtr BodyBuilder::parse_force(const YamlModel& model, const std::string body_name, const EnvironmentAndFrames& env, const std::vector<ForceParser>& force_parsers) const
+{
+	ForcePtr ret;
+	bool parsed = false;
+	for (auto try_to_parse:force_parsers)
+	{
+		boost::optional<ForcePtr> f = try_to_parse(model, body_name, env);
+		if (f)
+		{
+			parsed = true;
+			return f.get();
+			break;
+		}
+	}
+
+	if (not(parsed))
+	{
+		THROW(__PRETTY_FUNCTION__, InvalidInputException, "Simulator does not know model '" << model.model << "': maybe the name is misspelt or you are using an outdated version of this simulator.");
+	}
+    return ret;
+}
+
+std::vector<ForcePtr> BodyBuilder::get_forces(const YamlBody& input, const std::string body_name, const EnvironmentAndFrames& env, const std::vector<ForceParser>& force_parsers) const
+{
+    std::vector<ForcePtr> forces;
+    for (const auto force:input.external_forces)
+    {
+        forces.push_back(parse_force(force, body_name, env, force_parsers));
+    }
+    for (const auto force:input.controlled_forces)
+    {
+    	forces.push_back(parse_force(force, body_name, env, force_parsers));
+    }
+    return forces;
+}
+
+double BodyBuilder::get_max_history_length(const std::vector<ForcePtr>& forces) const
+{
+	double Tmax = 0;
+	for (const auto force:forces) Tmax = std::max(Tmax, force->get_Tmax());
+	return Tmax;
+}
+
+BodyPtr BodyBuilder::build(const std::string& name, const VectorOfVectorOfPoints& mesh, const size_t idx, const double t0, const bool) const
 {
     YamlBody input;
     input.name = name;
@@ -170,5 +224,16 @@ BodyPtr BodyBuilder::build(const std::string& name, const VectorOfVectorOfPoints
     input.dynamics.rigid_body_inertia.row_5 = {0,0,0,0,1,0};
     input.dynamics.rigid_body_inertia.row_6 = {0,0,0,0,0,1};
     input.dynamics.added_mass = input.dynamics.rigid_body_inertia;
-    return build(input, mesh, idx, t0, convention, Tmax, has_surface_forces);
+    BodyStates states = get_initial_states(input, mesh, t0);
+
+    const BlockedDOF blocked_states(input.blocked_dof,idx);
+
+    return BodyPtr(new Body(states,idx,blocked_states));
+}
+
+BodyPtr BodyBuilder::build(const YamlBody& input, const VectorOfVectorOfPoints& mesh, const size_t idx, const double t0, const bool) const
+{
+	BodyStates states = get_initial_states(input, mesh, t0);
+	const BlockedDOF blocked_states(input.blocked_dof,idx);
+	return BodyPtr(new Body(states,idx,blocked_states));
 }

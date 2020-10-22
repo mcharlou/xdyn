@@ -5,8 +5,10 @@
  *      Author: cady
  */
 
-
+#include <math.h>
 #include "ManeuveringInternal.hpp"
+
+#define PI M_PI
 
 using namespace maneuvering;
 
@@ -119,6 +121,33 @@ double Sin::get_max() const
 double Sin::get_min() const
 {
     return -1;
+}
+
+Atan::Atan(const NodePtr& operand) : Unary(operand)
+{
+}
+Function Atan::get_lambda() const
+{
+    return [this](const BodyStates& states, ssc::data_source::DataSource& ds, const double t)
+            {
+                const auto op = get_operand()->get_lambda();
+                return atan(op(states, ds, t));
+            };
+}
+
+void Atan::accept(AbstractNodeVisitor& visitor) const
+{
+    visitor.visit(*this);
+}
+
+double Atan::get_max() const
+{
+    return PI/2;
+}
+
+double Atan::get_min() const
+{
+    return -PI/2;
 }
 
 Abs::Abs(const NodePtr& operand) : Unary(operand)
@@ -469,6 +498,11 @@ NodePtr maneuvering::make_cos(const NodePtr& n)
 NodePtr maneuvering::make_sin(const NodePtr& n)
 {
     return NodePtr(new Sin(n));
+}
+
+NodePtr maneuvering::make_atan(const NodePtr& n)
+{
+    return NodePtr(new Atan(n));
 }
 
 NodePtr maneuvering::make_abs(const NodePtr& n)

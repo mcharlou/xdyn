@@ -37,7 +37,7 @@ BodyPtr BodyBuilderTest::build_body(size_t idx)
     const auto yaml = SimulatorYamlParser(test_data::full_example()).parse();
     const auto mesh = read_stl(test_data::cube());
     BodyBuilder builder(yaml.rotations);
-    return builder.build(yaml.bodies.front(), mesh, idx, 0, yaml.rotations, 0);
+    return builder.build(yaml.bodies.front(), mesh, idx, 0);
 }
 
 TEST_F(BodyBuilderTest, name_should_be_correct)
@@ -541,3 +541,15 @@ TEST_F(BodyBuilderTest, hydrodynamic_forces_calculation_point_in_body_frame)
     ASSERT_DOUBLE_EQ(0, P.y());
     ASSERT_DOUBLE_EQ(1.418, P.z());
 }
+
+/* TODO: Adapt this test from SimulatorBuilderTest to BodyBuilderTest (the responsibility of building forces was moved from the former to the latter)
+TEST_F(SimulatorBuilderTest, get_forces_should_throw_if_there_is_anything_it_cannot_parse)
+{
+    builder.can_parse<DefaultSurfaceElevation>();
+    MeshMap m;
+    const std::string name = input.bodies.front().name;
+    m[name] = two_triangles();
+    const EnvironmentAndFrames env = builder.get_environment();
+    const auto bodies = builder.get_bodies(m, env);
+    ASSERT_THROW(builder.get_forces(env), InvalidInputException);
+}*/

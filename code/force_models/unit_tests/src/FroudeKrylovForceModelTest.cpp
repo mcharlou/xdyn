@@ -5,14 +5,15 @@
  *      Author: cady
  */
 
-#include "FroudeKrylovForceModelTest.hpp"
+#include <cmath>
+#include <ssc/kinematics.hpp>
+
 #include "BodyWithSurfaceForces.hpp"
 #include "DefaultSurfaceElevation.hpp"
 #include "FroudeKrylovForceModel.hpp"
 #include "generate_body_for_tests.hpp"
 #include "TriMeshTestData.hpp"
 #include "MeshIntersector.hpp"
-#include <ssc/kinematics.hpp>
 #include "DiracSpectralDensity.hpp"
 #include "DiracDirectionalSpreading.hpp"
 #include "discretize.hpp"
@@ -22,8 +23,9 @@
 #include "YamlWaveModelInput.hpp"
 #include "Stretching.hpp"
 
+#include "FroudeKrylovForceModelTest.hpp"
+
 #define _USE_MATH_DEFINE
-#include <cmath>
 #define PI M_PI
 
 #define EPS 1E-8
@@ -45,7 +47,7 @@ void FroudeKrylovForceModelTest::TearDown()
 {
 }
 
-TR1(shared_ptr)<WaveModel> FroudeKrylovForceModelTest::get_wave_model() const
+std::shared_ptr<WaveModel> FroudeKrylovForceModelTest::get_wave_model() const
 {
     const double psi0 = PI/4;
     const double Hs = 3;
@@ -60,7 +62,7 @@ TR1(shared_ptr)<WaveModel> FroudeKrylovForceModelTest::get_wave_model() const
     const Stretching ss(ys);
     const DiscreteDirectionalWaveSpectrum A = discretize(DiracSpectralDensity(omega0, Hs), DiracDirectionalSpreading(psi0), omega_min, omega_max, nfreq, ss);
     int random_seed = 0;
-    return TR1(shared_ptr)<WaveModel>(new Airy(A, random_seed));
+    return std::shared_ptr<WaveModel>(new Airy(A, random_seed));
 }
 
 VectorOfVectorOfPoints FroudeKrylovForceModelTest::get_points() const
@@ -83,9 +85,11 @@ TEST_F(FroudeKrylovForceModelTest, example)
 {
 //! [FroudeKrylovForceModelTest example]
     const EnvironmentAndFrames env = get_environment_and_frames(get_wave_model());
+    ssc::data_source::DataSource ds;
     const auto points = get_points();
 
-    BodyStates states = get_body(BODY, points)->get_states();
+    BodyPtr body_ptr = get_body(BODY, points);
+    BodyStates states = body_ptr->get_states();
     states.G = ssc::kinematics::Point("NED",0,2,2./3.);
     BodyPtr body(new BodyWithSurfaceForces(states, 0, BlockedDOF("")));
 
@@ -93,7 +97,7 @@ TEST_F(FroudeKrylovForceModelTest, example)
     ASSERT_EQ("non-linear Froude-Krylov", F.model_name());
     const double t = 0;
     body->update_intersection_with_free_surface(env, t);
-    const ssc::kinematics::Wrench Ffk = F(body->get_states(), t);
+    const ssc::kinematics::Wrench Ffk = F(body->get_states(), t, env, ds);
 //! [FroudeKrylovForceModelTest example]
 //! [FroudeKrylovForceModelTest expected output]
     ASSERT_DOUBLE_EQ(-11056.734651002685, Ffk.X());
@@ -167,7 +171,8 @@ TEST_F(FroudeKrylovForceModelTest, validation_against_sos_stab)
     const Stretching ss(ys);
     const DiscreteDirectionalWaveSpectrum A = discretize(DiracSpectralDensity(omega0, Hs), DiracDirectionalSpreading(psi), omega_min, omega_max, nfreq, ss);
 
-    const EnvironmentAndFrames env = get_environment_and_frames(TR1(shared_ptr)<WaveModel>(new Airy(A, phi)));
+    const EnvironmentAndFrames env = get_environment_and_frames(std::shared_ptr<WaveModel>(new Airy(A, phi)));
+    ssc::data_source::DataSource ds;
 
     BodyStates states = get_body(BODY, cube(0.2,0,0,0.2))->get_states();
     states.G = ssc::kinematics::Point("NED",0,0,0.2);
@@ -175,7 +180,7 @@ TEST_F(FroudeKrylovForceModelTest, validation_against_sos_stab)
 
     FroudeKrylovForceModel F(BODY, env);
     body->update_intersection_with_free_surface(env, t);
-    const ssc::kinematics::Wrench Ffk = F(states, t);
+    const ssc::kinematics::Wrench Ffk = F(states, t, env, ds);
     ASSERT_NEAR(-0.56219471494913797, Ffk.X(), EPS);
     ASSERT_NEAR(0, Ffk.Y(), EPS);
     ASSERT_NEAR(-0.27603603957852307, Ffk.Z(), EPS);

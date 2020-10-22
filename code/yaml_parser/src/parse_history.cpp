@@ -6,6 +6,8 @@
 #include "YamlState.hpp"
 #include <ssc/json.hpp>
 
+#include <iostream>
+
 YamlSimServerInputs decode_YamlSimServerInputs(const std::string& json)
 {
     rapidjson::Document document;
@@ -15,34 +17,35 @@ YamlSimServerInputs decode_YamlSimServerInputs(const std::string& json)
     {
         THROW(__PRETTY_FUNCTION__, ssc::json::Exception, "JSON should be an object (i.e. within curly braces), but it's not (it's a " << ssc::json::print_type(document) << "). The JSON we're looking at was: " << ssc::json::dump(document));
     }
-    if (not(document.HasMember("states")))
-    {
-        THROW(__PRETTY_FUNCTION__, ssc::json::Exception, "Missing key 'states' in JSON root.")
-    }
-    if (not(document["states"].IsArray()))
-    {
-      THROW(__PRETTY_FUNCTION__, ssc::json::Exception, "Expecting a JSON array but got '" << ssc::json::dump(document["states"]));
-    }
     infos.Dt = ssc::json::find_optional_double("Dt", document, 0);
-    for (rapidjson::Value& v:document["states"].GetArray())
+    if (document.HasMember("states"))
     {
-        YamlState s;
-        s.t = ssc::json::find_double("t", v);
-        s.x = ssc::json::find_double("x", v);
-        s.y = ssc::json::find_double("y", v);
-        s.z = ssc::json::find_double("z", v);
-        s.u = ssc::json::find_double("u", v);
-        s.v = ssc::json::find_double("v", v);
-        s.w = ssc::json::find_double("w", v);
-        s.p = ssc::json::find_double("p", v);
-        s.q = ssc::json::find_double("q", v);
-        s.r = ssc::json::find_double("r", v);
-        s.qr = ssc::json::find_double("qr", v);
-        s.qi = ssc::json::find_double("qi", v);
-        s.qj = ssc::json::find_double("qj", v);
-        s.qk = ssc::json::find_double("qk", v);
-        infos.states.push_back(s);
+    	//THROW(__PRETTY_FUNCTION__, ssc::json::Exception, "Missing key 'states' in JSON root.")
+    	if (not(document["states"].IsArray()))
+    	{
+    		THROW(__PRETTY_FUNCTION__, ssc::json::Exception, "Expecting a JSON array but got '" << ssc::json::dump(document["states"]));
+    	}
+    	for (rapidjson::Value& v:document["states"].GetArray())
+    	{
+    		YamlState s;
+    		s.t = ssc::json::find_double("t", v);
+    		s.x = ssc::json::find_double("x", v);
+    		s.y = ssc::json::find_double("y", v);
+    		s.z = ssc::json::find_double("z", v);
+    		s.u = ssc::json::find_double("u", v);
+    		s.v = ssc::json::find_double("v", v);
+    		s.w = ssc::json::find_double("w", v);
+    		s.p = ssc::json::find_double("p", v);
+    		s.q = ssc::json::find_double("q", v);
+    		s.r = ssc::json::find_double("r", v);
+    		s.qr = ssc::json::find_double("qr", v);
+    		s.qi = ssc::json::find_double("qi", v);
+    		s.qj = ssc::json::find_double("qj", v);
+    		s.qk = ssc::json::find_double("qk", v);
+    		infos.states.push_back(s);
+    	}
     }
+
     if (document.HasMember("commands"))
     {
         const rapidjson::Value& commands = document["commands"];
@@ -60,6 +63,31 @@ YamlSimServerInputs decode_YamlSimServerInputs(const std::string& json)
                 }
             }
         }
+    }
+    if (document.HasMember("request"))
+    {
+    	const rapidjson::Value& req = document["request"];
+    	std::string request = ssc::json::dump(req);
+    	if(request == "\"get_Tmax\"")
+    	{
+    		infos.request = Request::get_Tmax;
+    	}
+    	else if(request == "\"quaternion2euler\"")
+    	{
+    		infos.request = Request::quaternion2euler;
+    	}
+    	else if(request == "\"euler2quaternion\"")
+    	{
+    		infos.request = Request::euler2quaternion;
+    	}
+    	else if(request == "\"force_signals\"")
+    	{
+    		infos.request = Request::force_signals;
+    	}
+    	else
+    	{
+    		THROW(__PRETTY_FUNCTION__, ssc::json::Exception, "Value of key 'request' in json input is unknown.")
+    	}
     }
 
     return infos;

@@ -5,8 +5,9 @@
  *      Author: cady
  */
 
-#include "ControllableForceModel.hpp"
+#include "ForceModel.hpp"
 #include "InvalidInputException.hpp"
+#include "NumericalErrorException.hpp"
 #include "ForceModel.hpp"
 #include "Observer.hpp"
 #include "yaml2eigen.hpp"
@@ -41,49 +42,66 @@ std::string ControllableForceModel::get_name() const
 std::map<std::string,double> ControllableForceModel::get_commands(ssc::data_source::DataSource& command_listener, const double t) const
 {
     std::map<std::string,double> ret;
+    command_listener.check_in(__PRETTY_FUNCTION__);
+    command_listener.set("t", t);
+    command_listener.check_out();
     for (auto that_command = commands.begin() ; that_command != commands.end() ; ++that_command)
     {
-        ret[*that_command] = get_command(*that_command, command_listener, t);
+        ret[*that_command] = get_command(*that_command, command_listener);
     }
     auto m = command_listener.get_all<double>();
     ret.insert(m.begin(),m.end());
     return ret;
 }
 
-ssc::kinematics::Wrench ControllableForceModel::operator()(const BodyStates& states, const double t, ssc::data_source::DataSource& command_listener, const ssc::kinematics::KinematicsPtr& k, const ssc::kinematics::Point& G)
+#define CHECK(force_name,component,value,body_name,t) if (std::isnan(value)) {THROW(__PRETTY_FUNCTION__,NumericalErrorException,"NaN detected in component '" << component << "' of force '" << force_name << "' acting on body '" << body_name << "' at t = " << t);}
+ssc::kinematics::Wrench ControllableForceModel::operator()(const BodyStates& states, const double t, const ssc::kinematics::KinematicsPtr& k, ssc::data_source::DataSource& command_listener)
 {
+	G = states.G;
     const auto F = get_force(states,t,get_commands(command_listener,t));
-    const Eigen::Vector3d force(F(0),F(1),F(2));
-    const Eigen::Vector3d torque(F(3),F(4),F(5));
-    const auto tau_in_internal_frame = ssc::kinematics::UnsafeWrench(ssc::kinematics::Point(name, 0, 0, 0), force, torque);
-    ssc::kinematics::Transform T = k->get(body_name, name);
+    const Eigen::Vector3d force(F.segment(0,2));
+    const Eigen::Vector3d torque(F.segment(3,5));
+    ssc::kinematics::Wrench tau_in_internal_frame(ssc::kinematics::Point(name, 0, 0, 0), force, torque);
+
+    ssc::kinematics::Transform T = k->get(name, body_name);
+
+    std::cout << "Transform " << name << "->" << body_name << ":" << T << std::endl;
 
     // Origin of the internal frame is P
     // G is the point (not the origin) of the body frame where the forces are summed
     // Ob is the origin of the body frame
 
 
-    const auto rot_from_internal_frame_to_body_frame = T.get_rot();
-    const auto OP = T.get_point().v;
-    const auto GO = -G.v;
-    const auto GP = GO + OP;
+    const auto rot_from_internal_frame_to_body_frame = T.get_rot().transpose();
+    const auto OP = k->get(body_name, name).get_point().v;
+    const auto OG = G.v;
+    const auto GP = -OG + OP;
     const auto force_in_G_expressed_in_body_frame = rot_from_internal_frame_to_body_frame*force;
     const auto torque_in_G_expressed_in_body_frame = rot_from_internal_frame_to_body_frame*(torque+GP.cross(force));
 
-    const ssc::kinematics::UnsafeWrench tau_in_body_frame_at_G(states.G, force_in_G_expressed_in_body_frame, torque_in_G_expressed_in_body_frame);
+    const ssc::kinematics::Wrench tau_in_body_frame_at_G(states.G, force_in_G_expressed_in_body_frame, torque_in_G_expressed_in_body_frame);
     latest_force_in_body_frame = tau_in_body_frame_at_G;
+
+    CHECK(get_name(),"Fx",latest_force_in_body_frame.X(),body_name,t);
+    CHECK(get_name(),"Fy",latest_force_in_body_frame.Y(),body_name,t);
+    CHECK(get_name(),"Fz",latest_force_in_body_frame.Z(),body_name,t);
+    CHECK(get_name(),"Mx",latest_force_in_body_frame.K(),body_name,t);
+    CHECK(get_name(),"My",latest_force_in_body_frame.M(),body_name,t);
+    CHECK(get_name(),"Mz",latest_force_in_body_frame.N(),body_name,t);
 
     return tau_in_body_frame_at_G;
 }
 
-double ControllableForceModel::get_command(const std::string& command_name, ssc::data_source::DataSource& command_listener, const double t) const
+double ControllableForceModel::get_command(const std::string& command_name, ssc::data_source::DataSource& command_listener) const
 {
     double ret = 0;
     try
     {
         command_listener.check_in(__PRETTY_FUNCTION__);
-        command_listener.set("t", t);
+        //std::cout << "Setting signal t: " << t << " in DataSource" << std::endl;
+        //command_listener.set("t", t);
         ret = command_listener.get<double>(name + "(" + command_name + ")");
+        //std::cout << "Retrieved " << name + "(" + command_name + ")" << "=" << ret << " from DataSource" << std::endl;
         command_listener.check_out();
     }
     catch (const ssc::data_source::DataSourceException& e)
@@ -119,7 +137,7 @@ void ControllableForceModel::feed(Observer& observer, ssc::kinematics::Kinematic
 
     const auto OG = OO1+O1G;
     const auto force_in_ned_frame_at_O = rot_from_body_frame_to_ned*tau_in_body_frame_at_G.force;
-    const auto torque_in_ned_frame_at_O = rot_from_body_frame_to_ned*(tau_in_body_frame_at_G.torque+OG.cross(tau_in_body_frame_at_G.force));;
+    const auto torque_in_ned_frame_at_O = rot_from_body_frame_to_ned*(tau_in_body_frame_at_G.torque+OG.cross(tau_in_body_frame_at_G.force));
 
     observer.write(tau_in_body_frame_at_G.X(),DataAddressing(std::vector<std::string>{"efforts",body_name,name,body_name,"Fx"},std::string("Fx(")+name+","+body_name+","+body_name+")"));
     observer.write(tau_in_body_frame_at_G.Y(),DataAddressing(std::vector<std::string>{"efforts",body_name,name,body_name,"Fy"},std::string("Fy(")+name+","+body_name+","+body_name+")"));
@@ -155,5 +173,9 @@ std::string ControllableForceModel::get_body_name() const
 }
 
 void ControllableForceModel::extra_observations(Observer&) const
+{
+}
+
+void ControllableForceModel::full_update(const BodyStates&, const ssc::kinematics::KinematicsPtr)
 {
 }

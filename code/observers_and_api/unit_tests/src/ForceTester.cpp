@@ -5,9 +5,7 @@
  *      Author: cady
  */
 
-
 #include "check_input_yaml.hpp"
-#include "ForceTester.hpp"
 #include "HydrostaticForceModel.hpp"
 #include "SimulatorYamlParser.hpp"
 #include "simulator_api.hpp"
@@ -17,6 +15,8 @@
 #include "hdb_data.hpp"
 #include "yaml_data.hpp"
 #include "stl_data.hpp"
+
+#include "ForceTester.hpp"
 
 Sim ForceTester::make_sim(const std::string& yaml, const std::string& stl) const
 {
@@ -57,26 +57,20 @@ Sim ForceTester::make_sim(const std::string& yaml, const VectorOfVectorOfPoints&
 }
 
 ForceTester::ForceTester(const std::string& yaml, const VectorOfVectorOfPoints& stl) :
-forces(),
-body(),
-env(),
-current_instant(0)
-{
-    auto sys = make_sim(yaml, stl);
-    body = sys.get_bodies().front();
-    env = sys.get_env();
-}
+		forces(),
+		body(make_sim(yaml, stl).get_bodies().front()),
+		env(make_sim(yaml, stl).get_env()),
+		ds(),
+		current_instant(0)
+{}
 
 ForceTester::ForceTester(const std::string& yaml, const std::string& stl) :
         forces(),
-        body(),
-        env(),
+        body(make_sim(yaml, stl).get_bodies().front()),
+        env(make_sim(yaml, stl).get_env()),
+		ds(),
         current_instant(0)
-{
-    auto sys = make_sim(yaml, stl);
-    body = sys.get_bodies().front();
-    env = sys.get_env();
-}
+{}
 
 std::vector<double> get_states(const double x, const double y,
         const double z, const double phi, const double theta, const double psi)
@@ -117,10 +111,10 @@ ssc::kinematics::Wrench ForceTester::force_in_ned(const double x,
 {
     std::vector<double> states = set_states(x, y, z, phi, theta, psi);
     ssc::kinematics::Wrench ret;
-    if (not(forces.empty())) ret = forces.front()->operator()(body->get_states(), current_instant);
+    if (not(forces.empty())) ret = forces.front()->operator()(body->get_states(), current_instant, env, ds);
     for (size_t i = 1 ; i < forces.size() ; ++i)
     {
-        auto f = forces.at(i)->operator()(body->get_states(), current_instant);
+        auto f = forces.at(i)->operator()(body->get_states(), current_instant, env, ds);
         ret = ret + f;
     }
 
@@ -198,7 +192,7 @@ EPoint ForceTester::center_of_buoyancy_in_ned_frame(const double x,
         const auto hs = dynamic_cast<HydrostaticForceModel*>(force.get());
         if (hs)
         {
-            hs->operator()(body->get_states(), current_instant++);
+            hs->operator()(body->get_states(), current_instant++, env, ds);
             return (Tned2body*hs->get_centre_of_buoyancy()).v;
         }
     }
@@ -219,7 +213,7 @@ boost::optional<double> ForceTester::gm(const double x,
         if (force->get_name() == "GM")
         {
             GMForceModel* F = static_cast<GMForceModel*>(force.get());
-            F->operator ()(body->get_states(), 0);
+            F->operator ()(body->get_states(), 0, env, ds);
             ret = F->get_GM();
         }
     }

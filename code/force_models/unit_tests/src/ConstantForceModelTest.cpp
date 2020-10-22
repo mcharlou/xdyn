@@ -5,21 +5,21 @@
  *      Author: cady
  */
 
+#include <cmath>
+#include <ssc/kinematics.hpp>
+
 #include "BodyBuilder.hpp"
 #include "EnvironmentAndFrames.hpp"
 #include "ConstantForceModel.hpp"
-#include "ConstantForceModelTest.hpp"
 #include "generate_body_for_tests.hpp"
 #include "yaml_data.hpp"
 #include "TriMeshTestData.hpp"
-#include <ssc/kinematics.hpp>
+
+#include "ConstantForceModelTest.hpp"
 
 #define BODY "body 1"
-
 #define _USE_MATH_DEFINE
-#include <cmath>
 #define PI M_PI
-
 #define DEG (PI/180.)
 
 ConstantForceModelTest::ConstantForceModelTest() : a(ssc::random_data_generator::DataGenerator(45454))
@@ -106,11 +106,11 @@ BodyPtr ConstantForceModelTest::get_body(const std::string& name) const
     rot.convention.push_back("y'");
     rot.convention.push_back("x''");
     rot.order_by = "angle";
-    return BodyBuilder(rot).build(name, two_triangles(), 0, 0, rot, true);
+    return BodyBuilder(rot).build(name, two_triangles(), 0, 0);
 }
 
 
-BodyStates ConstantForceModelTest::get_states(const double phi, const double theta, const double psi, EnvironmentAndFrames& env) const
+BodyStates ConstantForceModelTest::get_states(const double phi, const double theta, const double psi, const EnvironmentAndFrames& env) const
 {
     auto body = get_body("Anthineas");
     auto states = body->get_states();
@@ -149,7 +149,7 @@ EnvironmentAndFrames ConstantForceModelTest::get_env() const
     return env;
 }
 
-ConstantForceModel ConstantForceModelTest::get_constant_force(EnvironmentAndFrames& env) const
+ConstantForceModel ConstantForceModelTest::get_constant_force(const EnvironmentAndFrames& env) const
 {
     const auto input = ConstantForceModel::parse(test_data::constant_force());
     return ConstantForceModel(input, "Anthineas", env);
@@ -157,12 +157,13 @@ ConstantForceModel ConstantForceModelTest::get_constant_force(EnvironmentAndFram
 
 TEST_F(ConstantForceModelTest, ship_at_45_deg)
 {
-    EnvironmentAndFrames env = get_env();
+	const EnvironmentAndFrames env = get_env();
     const double phi = 0;
     const double theta = 0;
     const double psi = 45 * DEG;
     auto states = get_states(phi, theta, psi, env);
-    const auto W = get_constant_force(env)(states, a.random<double>());
+    ssc::data_source::DataSource ds;
+    const auto W = get_constant_force(env)(states, a.random<double>(), env, ds);
     ASSERT_DOUBLE_EQ(10e3*std::sqrt(2)/2 + 20e3*sqrt(2)/2, (double)W.X());
     ASSERT_DOUBLE_EQ(-10e3*sqrt(2)/2+20e3*std::sqrt(2)/2, (double)W.Y());
     ASSERT_DOUBLE_EQ(30e3, (double)W.Z());
@@ -170,12 +171,13 @@ TEST_F(ConstantForceModelTest, ship_at_45_deg)
 
 TEST_F(ConstantForceModelTest, ship_at_30_deg)
 {
-    EnvironmentAndFrames env = get_env();
+	const EnvironmentAndFrames env = get_env();
     const double phi = 0;
     const double theta = 0;
     const double psi = 30 * DEG;
     auto states = get_states(phi, theta, psi, env);
-    const auto W = get_constant_force(env)(states, a.random<double>());
+    ssc::data_source::DataSource ds;
+    const auto W = get_constant_force(env)(states, a.random<double>(), env, ds);
     ASSERT_DOUBLE_EQ(10e3*std::sqrt(3)/2 + 20e3*sqrt(1)/2, (double)W.X());
     ASSERT_DOUBLE_EQ(-10e3*sqrt(1)/2+20e3*std::sqrt(3)/2, (double)W.Y());
     ASSERT_DOUBLE_EQ(30e3, (double)W.Z());

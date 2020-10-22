@@ -4,18 +4,18 @@
  *  Created on: Jun 28, 2015
  *      Author: cady
  */
-#include "AbstractWageningen.hpp"
 
-#include "external_data_structures_parsers.hpp"
-
+#include <cmath>
 #include <ssc/yaml_parser.hpp>
 
+#include "external_data_structures_parsers.hpp"
 #include "yaml.h"
+#include "BodyStates.hpp"
+
+#include "AbstractWageningen.hpp"
 
 #define _USE_MATH_DEFINE
-#include <cmath>
 #define PI M_PI
-
 
 AbstractWageningen::Yaml::Yaml() :
         name(),
@@ -25,8 +25,7 @@ AbstractWageningen::Yaml::Yaml() :
         thrust_deduction_factor(),
         rotating_clockwise(),
         diameter()
-{
-}
+{}
 
 AbstractWageningen::Yaml AbstractWageningen::parse(const std::string& yaml)
 {
@@ -54,8 +53,8 @@ double AbstractWageningen::advance_ratio(const BodyStates& states, const std::ma
     return (1-w)*Va/n/D;
 }
 
-AbstractWageningen::AbstractWageningen(const Yaml& input, const std::string& body_name_, const EnvironmentAndFrames& env_) :
-            ControllableForceModel(input.name,{"rpm"},input.position_of_propeller_frame, body_name_, env_),
+AbstractWageningen::AbstractWageningen(const Yaml& input, const std::string& body_name, const EnvironmentAndFrames& env):
+            ForceModel(input.name, body_name, env, input.position_of_propeller_frame,{"rpm"}),
             w(input.wake_coefficient),
             eta_R(input.relative_rotative_efficiency),
             t(input.thrust_deduction_factor),
@@ -63,15 +62,37 @@ AbstractWageningen::AbstractWageningen(const Yaml& input, const std::string& bod
             D(input.diameter),
             D4(D*D*D*D),
             D5(D4*D)
+{}
+
+std::vector<std::string> concatenate_commands(const std::vector<std::string>& set1, const std::vector<std::string>& set2)
 {
+	std::vector<std::string> ret(set1.begin(),set1.end());
+	ret.insert(ret.end(), set2.begin(), set2.end());
+	return ret;
+
 }
 
-ssc::kinematics::Vector6d AbstractWageningen::get_force(const BodyStates& states, const double, const std::map<std::string,double>& commands) const
+AbstractWageningen::AbstractWageningen(const Yaml& input, const std::string& body_name, const EnvironmentAndFrames& env, const std::vector<std::string>& commands_):
+			ForceModel(input.name, body_name, env, input.position_of_propeller_frame,concatenate_commands(commands_,{"rpm"})),
+			w(input.wake_coefficient),
+			eta_R(input.relative_rotative_efficiency),
+			t(input.thrust_deduction_factor),
+			kappa(input.rotating_clockwise ? -1 : 1),
+			D(input.diameter),
+			D4(D*D*D*D),
+			D5(D4*D)
+{}
+
+ssc::kinematics::Vector6d AbstractWageningen::get_force(const BodyStates& states, const double, const EnvironmentAndFrames& env, const std::map<std::string,double>& commands) const
 {
     ssc::kinematics::Vector6d tau = ssc::kinematics::Vector6d::Zero();
+    //std::cout << "Propeller model receives command rpm: " << commands.at("rpm") << std::endl;
     const double n2 = commands.at("rpm")*commands.at("rpm")/(4*PI*PI); // In turns per second (Hz)
     const double J = advance_ratio(states, commands);
-    tau(0) = (1-t)*env.rho*n2*D4*get_Kt(commands, J);
-    tau(3) = kappa*eta_R*env.rho*n2*D5*get_Kq(commands, J);
+    if(n2>0)
+    {
+    	tau(0) = (1-t)*env.rho*n2*D4*get_Kt(commands, J);
+    	tau(3) = kappa*eta_R*env.rho*n2*D5*get_Kq(commands, J);
+    }
     return tau;
 }

@@ -176,7 +176,7 @@ TEST_F(HistoryTest, history_should_not_grow_indefinitely)
     ASSERT_DOUBLE_EQ(1, h(4));
     ASSERT_EQ(3, h.size());
     ASSERT_DOUBLE_EQ(4, h.get_duration());
-    ASSERT_DOUBLE_EQ(0, h(4.1));
+    ASSERT_DOUBLE_EQ(1, h(4.1)); // For time prior to the oldest record, the value should be equal to the oldest record
     h.record(t-5, 4);
     ASSERT_EQ(3, h.size());
     ASSERT_DOUBLE_EQ(4, h.get_duration());

@@ -35,6 +35,23 @@
 #include "LinearHydrostaticForceModel.hpp"
 #include "listeners.hpp"
 #include "ConstantForceModel.hpp"
+#include "SailForceModel.hpp"
+#include "FlettnerRotorForceModel.hpp"
+#include "DefaultWindModel.hpp"
+#include "UniformWindProfile.hpp"
+#include "NoWindTurbulence.hpp"
+#include "HoltropMennenForceModel.hpp"
+#include "ActualWindModel.hpp"
+#include "EmpiricRollDampingForceModel.hpp"
+#include "SaturationController.hpp"
+#include "ProportionalController.hpp"
+#include "IntegralController.hpp"
+#include "DerivativeController.hpp"
+#include "PIDController.hpp"
+#include "AntiWindUpPIDController.hpp"
+#include "DerivativeSaturationController.hpp"
+#include "MMGManoeuvringForceModel.hpp"
+#include "MMGRudderForceModel.hpp"
 
 SimulatorBuilder get_builder(const YamlSimulatorInput& yaml, const double t0, const ssc::data_source::DataSource& command_listener);
 SimulatorBuilder get_builder(const YamlSimulatorInput& yaml, const double t0, const ssc::data_source::DataSource& command_listener)
@@ -66,10 +83,28 @@ SimulatorBuilder get_builder(const YamlSimulatorInput& yaml, const double t0, co
            .can_parse<SimpleStationKeepingController>()
            .can_parse<RudderForceModel>()
            .can_parse<GMForceModel>()
-           .can_parse<KtKqForceModel>()
-           .can_parse<ConstantForceModel>()
-           .can_parse<LinearHydrostaticForceModel>()
-           .can_parse<GRPCForceModel>();
+		   .can_parse<KtKqForceModel>()
+		   .can_parse<ConstantForceModel>()
+		   .can_parse<LinearHydrostaticForceModel>()
+		   .can_parse<GRPCForceModel>()
+		   .can_parse<SailForceModel>()
+		   .can_parse<UniformWindProfile>()
+		   .can_parse<NoWindTurbulence>()
+		   .can_parse<ActualWindModel>()
+		   .can_parse<DefaultWindModel>()
+		   .can_parse<FlettnerRotorForceModel>()
+		   .can_parse<HoltropMennenForceModel>()
+		   .can_parse<EmpiricRollDampingForceModel>()
+		   .can_parse<SaturationController>()
+		   .can_parse<ProportionalController>()
+		   .can_parse<IntegralController>()
+		   .can_parse<DerivativeController>()
+		   .can_parse<PIDController>()
+		   .can_parse<AntiWindUpPIDController>()
+		   .can_parse<DerivativeSaturationController>()
+		   .can_parse<MMGManoeuvringForceModel>()
+		   .can_parse<MMGRudderForceModel>()
+	   ;
     return builder;
 }
 

@@ -18,6 +18,8 @@ void operator >> (const YAML::Node& node, YamlDiscretization& g);
 void operator >> (const YAML::Node& node, YamlSpectra& g);
 void operator >> (const YAML::Node& node, YamlWaveOutput& g);
 void operator >> (const YAML::Node& node, YamlStretching& g);
+void operator >> (const YAML::Node& node, YamlWindProfile& g);
+void operator >> (const YAML::Node& node, YamlWindTurbulence& g);
 
 void get_yaml(const YAML::Node& node, std::string& out);
 
@@ -124,6 +126,7 @@ void operator >> (const YAML::Node& node, YamlSpectra& g)
 
     node["spectral density"]["type"] >> g.spectral_density_type;
     get_yaml(node["spectral density"], g.spectral_density_yaml);
+
     node["stretching"] >> g.stretching;
 
     ssc::yaml_parser::parse_uv(node["depth"], g.depth);
@@ -141,7 +144,7 @@ void operator >> (const YAML::Node& node, YamlWaveOutput& g)
 }
 
 
-YamlDiracDirection   parse_wave_dirac_direction(const std::string& yaml)
+YamlDiracDirection parse_wave_dirac_direction(const std::string& yaml)
 {
     YamlDiracDirection ret;
     try
@@ -161,7 +164,7 @@ YamlDiracDirection   parse_wave_dirac_direction(const std::string& yaml)
 return ret;
 }
 
-YamlDiracSpectrum    parse_wave_dirac_spectrum(const std::string& yaml)
+YamlDiracSpectrum parse_wave_dirac_spectrum(const std::string& yaml)
 {
     YamlDiracSpectrum ret;
     try
@@ -182,7 +185,7 @@ YamlDiracSpectrum    parse_wave_dirac_spectrum(const std::string& yaml)
     return ret;
 }
 
-YamlJonswap          parse_jonswap(const std::string& yaml)
+YamlJonswap parse_jonswap(const std::string& yaml)
 {
     YamlJonswap ret;
     try
@@ -225,7 +228,7 @@ YamlPiersonMoskowitz parse_pierson_moskowitz(const std::string& yaml)
     return ret;
 }
 
-YamlBretschneider    parse_bretschneider(const std::string& yaml)
+YamlBretschneider parse_bretschneider(const std::string& yaml)
 {
     YamlBretschneider ret;
     try
@@ -246,7 +249,7 @@ YamlBretschneider    parse_bretschneider(const std::string& yaml)
     return ret;
 }
 
-YamlCos2s            parse_cos2s(const std::string& yaml)
+YamlCos2s parse_cos2s(const std::string& yaml)
 {
     YamlCos2s ret;
     try
@@ -405,4 +408,77 @@ YamlGRPC parse_grpc(const std::string& yaml)
     node >> out;
     out.rest_of_the_yaml = yaml;
     return out;
+}
+
+void operator >> (const YAML::Node& node, YamlWindProfile& g)
+{
+    node["model"] >> g.model;
+    get_yaml(node, g.model_yaml);
+}
+
+void operator >> (const YAML::Node& node, YamlWindTurbulence& g)
+{
+    node["model"] >> g.model;
+    get_yaml(node, g.model_yaml);
+}
+
+YamlWindModel parse_wind(const std::string& yaml)
+{
+    YamlWindModel ret;
+    std::stringstream stream(yaml);
+    YAML::Parser parser(stream);
+    YAML::Node node;
+    parser.GetNextDocument(node);
+
+    try
+	{
+		node["vertical profile"] >> ret.vertical_profile;
+	}
+	catch(std::exception& e)
+	{
+		std::stringstream ss;
+		ss << "Error parsing section wave/vertical profile: " << e.what();
+		THROW(__PRETTY_FUNCTION__, InvalidInputException, ss.str());
+	}
+	try
+	{
+		node["turbulence"] >> ret.turbulence;
+	}
+	catch(std::exception& e)
+	{
+		std::stringstream ss;
+		ss << "Error parsing section wave/turbulence: " << e.what();
+		THROW(__PRETTY_FUNCTION__, InvalidInputException, ss.str());
+	}
+    return ret;
+}
+
+YamlUniformWind parse_uniform_wind(const std::string& yaml){
+    YamlUniformWind ret;
+    std::stringstream stream(yaml);
+    YAML::Parser parser(stream);
+    YAML::Node node;
+    parser.GetNextDocument(node);
+
+    try
+    {
+	ssc::yaml_parser::parse_uv(node["direction"], ret.direction);
+    }
+    catch(std::exception& e)
+    {
+	std::stringstream ss;
+	ss << "Error parsing section wind/uniform/direction: " << e.what();
+	THROW(__PRETTY_FUNCTION__, InvalidInputException, ss.str());
+    }
+    try
+    {
+	ssc::yaml_parser::parse_uv(node["mean velocity"], ret.mean_velocity);
+    }
+    catch(std::exception& e)
+    {
+	std::stringstream ss;
+	ss << "Error parsing section wind/uniform/velocity: " << e.what();
+	THROW(__PRETTY_FUNCTION__, InvalidInputException, ss.str());
+    }
+    return ret;
 }

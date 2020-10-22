@@ -8,7 +8,7 @@
 #ifndef HYDROSTATICFORCEMODEL_HPP_
 #define HYDROSTATICFORCEMODEL_HPP_
 
-#include "ForceModel.hpp"
+#include "ForceModelAtG.hpp"
 #include <Eigen/Dense>
 #include <ssc/kinematics.hpp>
 
@@ -20,20 +20,19 @@ class Body;
  *  \addtogroup model_wrappers
  *  \ingroup model_wrappers
  */
-class HydrostaticForceModel : public ForceModel
+class HydrostaticForceModel : public ForceModelAtG
 {
     public:
-        HydrostaticForceModel(const std::string& body_name, const EnvironmentAndFrames& env_);
-        ssc::kinematics::Wrench operator()(const BodyStates& states, const double t) const;
+        HydrostaticForceModel(const std::string& body_name, const EnvironmentAndFrames& env);
+        Vector6d get_force(const BodyStates& states, const double t, const EnvironmentAndFrames& env, const std::map<std::string,double>& commands) const override;
         static std::string model_name();
-        bool is_a_surface_force_model() const;
-        void extra_observations(Observer& ) const;
+        bool is_a_surface_force_model() const override;
+        void extra_observations(Observer& observer) const override;
         ssc::kinematics::Point get_centre_of_buoyancy() const;
 
     private:
         HydrostaticForceModel();
-        EnvironmentAndFrames env;
-        TR1(shared_ptr)<Eigen::Vector3d> centre_of_buoyancy;
+        std::shared_ptr<Eigen::Vector3d> centre_of_buoyancy;
 };
 
 #endif /* HYDROSTATICFORCEMODEL_HPP_ */

@@ -139,6 +139,7 @@ namespace maneuvering
             {
                 if (d.function == "cos")  return make_cos    (this->operator()(d.expr));
                 if (d.function == "sin")  return make_sin    (this->operator()(d.expr));
+                if (d.function == "atan") return make_atan   (this->operator()(d.expr));
                 if (d.function == "exp")  return make_exp    (this->operator()(d.expr));
                 if (d.function == "abs")  return make_abs    (this->operator()(d.expr));
                 if (d.function == "log")  return make_log    (this->operator()(d.expr));

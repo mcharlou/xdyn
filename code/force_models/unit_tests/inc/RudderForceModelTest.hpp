@@ -23,7 +23,7 @@ class RudderForceModelTest : public ::testing::Test
         virtual ~RudderForceModelTest();
         virtual void SetUp();
         virtual void TearDown();
-        TR1(shared_ptr)<WaveModel> get_wave_model() const;
+        std::shared_ptr<WaveModel> get_wave_model() const;
         ssc::random_data_generator::DataGenerator a;
 };
 

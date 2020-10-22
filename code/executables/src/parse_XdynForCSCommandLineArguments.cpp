@@ -12,7 +12,7 @@ bool invalid(const XdynForCSCommandLineArguments& input)
     if (input.empty()) return true;
     if (input.yaml_filenames.empty())
     {
-        std::cerr << "Error: no input YAML files defined: need at least one." << std::endl;
+        std::cerr << "Error: no input YAML defined: need at least one." << std::endl;
         return true;
     }
     if (input.solver.empty())
@@ -50,7 +50,9 @@ po::options_description get_options_description(XdynForCSCommandLineArguments& i
         ("verbose,v",                                                                    "Display all information received & emitted by the server on the standard output.")
         ("websocket-debug,w",                                                            "Display *all* websocket-related information (connect/disconnect, payload, etc.): very chatty.")
         ("debug,d",                                                                      "Used by the application's support team to help error diagnosis. Allows us to pinpoint the exact location in code where the error occurred (do not catch exceptions), eg. for use in a debugger.")
-        ("port,p",     po::value<short unsigned int>(&input_data.port),                  "port for the websocket server. Available values are 1024-65535 (2^16, but port 0 is reserved and unavailable and ports in range 1-1023 are privileged (application needs to be run as root to have access to those ports)")
+		("docker-localhost",                                                             "Sets the localhost address to 0.0.0.0 instead of 127.0.0.1 (default). Useful for running in a Docker container.")
+        ("port,p",     po::value<short unsigned int>(&input_data.port),                  "Port for the server. Available values are 1024-65535 (2^16, but port 0 is reserved and unavailable and ports in range 1-1023 are privileged (application needs to be run as root to have access to those ports)")
+		("inline,i",                                                                     "Interprets the '-yml' input directly as a text containing the simulation input instead of a file name to be read.")
         ;
     return desc;
 }
@@ -63,6 +65,8 @@ int get_input_data(int argc, char **argv, XdynForCSCommandLineArguments& input_d
     input_data.verbose = has.verbose;
     input_data.show_help = has.help;
     input_data.show_websocket_debug_information = has.show_websocket_debug_information;
+    input_data.inline_yaml=has.inline_yaml;
+    input_data.docker_localhost=has.docker_localhost;
     if (has.help)
     {
         print_usage(std::cout, desc, argv[0], "This is a ship simulator (co-simulation server version)");

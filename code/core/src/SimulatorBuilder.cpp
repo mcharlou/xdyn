@@ -5,30 +5,35 @@
  *      Author: cady
  */
 
-#include "SimulatorBuilder.hpp"
+#include <vector>
+#include <ssc/text_file_reader.hpp>
+#include <ssc/data_source/DataSourceModule.hpp>
 
 #include "InternalErrorException.hpp"
 #include "update_kinematics.hpp"
 #include "stl_reader.hpp"
+#include "BodyStatesModule.hpp"
 #include "BodyBuilder.hpp"
+#include "EnvironmentAndFrames.hpp"
 
-#include <ssc/text_file_reader.hpp>
+#include "SimulatorBuilder.hpp"
 
 SimulatorBuilder::SimulatorBuilder(const YamlSimulatorInput& input_, const double t0_, const ssc::data_source::DataSource& command_listener_) :
                                         input(input_),
-                                        builder(TR1(shared_ptr)<BodyBuilder>(new  BodyBuilder(input.rotations))),
-                                        force_parsers(),
-                                        controllable_force_parsers(),
+                                        body_builder(std::shared_ptr<BodyBuilder>(new  BodyBuilder(input.rotations))),
                                         surface_elevation_parsers(),
-                                        wave_parsers(TR1(shared_ptr)<std::vector<WaveModelBuilderPtr> >(new std::vector<WaveModelBuilderPtr>())),
-                                        directional_spreading_parsers(TR1(shared_ptr)<std::vector<DirectionalSpreadingBuilderPtr> >(new std::vector<DirectionalSpreadingBuilderPtr>())),
-                                        spectrum_parsers(TR1(shared_ptr)<std::vector<SpectrumBuilderPtr> >(new std::vector<SpectrumBuilderPtr>())),
-                                        command_listener(command_listener_),
-                                        t0(t0_)
-{
-}
+                                        wave_parsers(std::shared_ptr<std::vector<WaveModelBuilderPtr> >(new std::vector<WaveModelBuilderPtr>())),
+										directional_spreading_parsers(std::shared_ptr<std::vector<DirectionalSpreadingBuilderPtr> >(new std::vector<DirectionalSpreadingBuilderPtr>())),
+										spectrum_parsers(std::shared_ptr<std::vector<SpectrumBuilderPtr> >(new std::vector<SpectrumBuilderPtr>())),
+										wind_parsers(),
+										wind_mean_velocity_parsers(std::shared_ptr<std::vector<WindMeanVelocityProfileBuilderPtr>>(new std::vector<WindMeanVelocityProfileBuilderPtr>())),
+										wind_turbulence_model_parsers(std::shared_ptr<std::vector<WindTurbulenceModelBuilderPtr>>(new std::vector<WindTurbulenceModelBuilderPtr>())),
+										command_listener(command_listener_),
+										controller_parsers(),
+										t0(t0_)
+{}
 
-std::vector<BodyPtr> SimulatorBuilder::get_bodies(const MeshMap& meshes, const std::vector<bool>& bodies_contain_surface_forces, std::map<std::string,double> history_length) const
+std::vector<BodyPtr> SimulatorBuilder::get_bodies(const MeshMap& meshes, const EnvironmentAndFrames& env) const
 {
     std::vector<BodyPtr> ret;
     size_t i = 0;
@@ -37,7 +42,7 @@ std::vector<BodyPtr> SimulatorBuilder::get_bodies(const MeshMap& meshes, const s
         const auto that_mesh = meshes.find(body.name);
         if (that_mesh != meshes.end())
         {
-            ret.push_back(builder->build(body, that_mesh->second, i,t0,input.rotations,history_length[body.name],bodies_contain_surface_forces.at(i)));
+            ret.push_back(body_builder->build(body, that_mesh->second, i,t0, env));
             i++;
         }
         else
@@ -55,6 +60,7 @@ void SimulatorBuilder::add_initial_transforms(const std::vector<BodyPtr>& bodies
     {
         k->add(bodies.at(i)->get_transform_from_mesh_to_body());
         k->add(bodies.at(i)->get_transform_from_ned_to_body(x));
+        k->add(bodies.at(i)->get_transform_from_ned_to_local_ned(x));
     }
 }
 
@@ -64,9 +70,11 @@ EnvironmentAndFrames SimulatorBuilder::get_environment() const
     env.g = input.environmental_constants.g;
     env.rho = input.environmental_constants.rho;
     env.nu = input.environmental_constants.nu;
+    env.air_density = input.environmental_constants.air_density;
     env.rot = input.rotations;
     env.w = get_wave();
     env.k = ssc::kinematics::KinematicsPtr(new ssc::kinematics::Kinematics());
+    env.wind = get_wind();
     return env;
 }
 
@@ -79,7 +87,7 @@ SurfaceElevationPtr SimulatorBuilder::get_wave() const
     SurfaceElevationPtr ret;
     for (auto that_model=input.environment.begin() ; that_model != input.environment.end() ; ++that_model)
     {
-        bool wave_model_successfully_parsed = false;
+        //bool wave_model_successfully_parsed = false;
         for (auto that_parser=surface_elevation_parsers.begin() ; that_parser != surface_elevation_parsers.end() ; ++that_parser)
         {
             boost::optional<SurfaceElevationPtr> w = (*that_parser)->try_to_parse(that_model->model, that_model->yaml);
@@ -90,73 +98,65 @@ SurfaceElevationPtr SimulatorBuilder::get_wave() const
                     THROW(__PRETTY_FUNCTION__, InternalErrorException, "More than one wave model was defined.");
                 }
                 ret = w.get();
-                wave_model_successfully_parsed = true;
+                //wave_model_successfully_parsed = true;
             }
         }
-        if (not(wave_model_successfully_parsed))
+        /*if (not(wave_model_successfully_parsed))
         {
             THROW(__PRETTY_FUNCTION__, InvalidInputException, "Simulator does not understand wave model '" << that_model->model << "'");
+        }*/ // The environment model can also be a wind model ! TODO: Add a way to detect that the input under "environment models" is neither a wave nor a wind model
+    }
+    return ret;
+}
+
+WindModelPtr SimulatorBuilder::get_wind() const
+{
+    if (wind_parsers.empty())
+    {
+        THROW(__PRETTY_FUNCTION__, InternalErrorException, "No wind parser defined. Need to call SimulatorBuilder::can_parse<T> with e.g. T=DefaultWindModel");
+    }
+    WindModelPtr ret;
+    for (auto that_model=input.environment.begin() ; that_model != input.environment.end() ; ++that_model)
+    {
+        //bool wind_model_successfully_parsed = false;
+        for (auto that_parser=wind_parsers.begin() ; that_parser != wind_parsers.end() ; ++that_parser)
+        {
+            boost::optional<WindModelPtr> w = (*that_parser)->try_to_parse(that_model->model, that_model->yaml);
+            if (w)
+            {
+                if (ret.use_count())
+                {
+                    THROW(__PRETTY_FUNCTION__, InternalErrorException, "More than one wind model was defined.");
+                }
+                ret = w.get();
+                //wind_model_successfully_parsed = true;
+            }
         }
+        /*if (not(wind_model_successfully_parsed))
+        {
+            THROW(__PRETTY_FUNCTION__, InvalidInputException, "Simulator does not understand wind model '" << that_model->model << "'");
+        }*/
     }
     return ret;
 }
 
-std::vector<ListOfForces> SimulatorBuilder::get_forces(const EnvironmentAndFrames& env) const
+void SimulatorBuilder::get_controllers(ssc::data_source::DataSource* const data_source, const std::vector<BodyPtr> bodies) const
 {
-    std::vector<ListOfForces> forces;
-    for (const auto body:input.bodies)
-    {
-        forces.push_back(forces_from(body, env));
-    }
-    return forces;
-}
-
-std::map<std::string, double> SimulatorBuilder::get_max_history_length(const std::vector<ListOfForces>& forces_for_all_bodies, const std::vector<ListOfControlledForces>& controlled_forces_for_all_bodies) const
-{
-    std::map<std::string, double> ret;
-    for (const auto forces:forces_for_all_bodies)
-    {
-        double Tmax = 0;
-        for (const auto force:forces) Tmax = std::max(Tmax, force->get_Tmax());
-        if (not(forces.empty())) ret[forces.front()->get_body_name()] = Tmax;
-    }
-    for (const auto forces:controlled_forces_for_all_bodies)
-    {
-        double Tmax = 0;
-        for (const auto force:forces) Tmax = std::max(Tmax, force->get_Tmax());
-        if (not(forces.empty())) ret[forces.front()->get_body_name()] = std::max(Tmax, ret[forces.front()->get_body_name()]);
-    }
-    return ret;
-}
-
-std::vector<ListOfControlledForces> SimulatorBuilder::get_controlled_forces(const EnvironmentAndFrames& env) const
-{
-    std::vector<ListOfControlledForces> forces;
-    for (auto that_body=input.bodies.begin() ; that_body != input.bodies.end() ; ++that_body)
-    {
-        forces.push_back(controlled_forces_from(*that_body, env));
-    }
-    return forces;
-}
-
-ListOfForces SimulatorBuilder::forces_from(const YamlBody& body, const EnvironmentAndFrames& env) const
-{
-    ListOfForces ret;
-    for (auto that_force_model = body.external_forces.begin() ; that_force_model!= body.external_forces.end() ; ++that_force_model)
-    {
-        add(*that_force_model, ret, body.name, env);
-    }
-    return ret;
-}
-
-ListOfControlledForces SimulatorBuilder::controlled_forces_from(const YamlBody& body, const EnvironmentAndFrames& env) const
-{
-    ListOfControlledForces ret;
-    for (auto that_force_model = body.controlled_forces.begin() ; that_force_model!= body.controlled_forces.end() ; ++that_force_model)
-    {
-        add(*that_force_model, ret, body.name, env);
-    }
-    return ret;
+	if(input.controllers.size()>0)
+	{
+		data_source->check_in(__PRETTY_FUNCTION__);
+		for (BodyPtr body:bodies)
+		{
+			data_source->add(BodyStatesModule(data_source,body));
+		}
+		data_source->check_out();
+		for (auto that_controller=input.controllers.begin() ; that_controller != input.controllers.end() ; ++that_controller)
+		{
+			add_controller(*that_controller, data_source);
+		}
+		/*std::cout << "Dependencies graph: " << std::endl;
+		std::cout << data_source->draw() << std::endl;*/
+	}
 }
 
 template <typename T> bool could_parse(const std::vector<T>& parsers, const YamlModel& model, const std::string& body_name, const EnvironmentAndFrames& env)
@@ -183,75 +183,34 @@ template <typename T> bool could_parse(const std::vector<T>& parsers, const Yaml
     return false;
 }
 
-void SimulatorBuilder::add(const YamlModel& model, ListOfForces& L, const std::string& body_name, const EnvironmentAndFrames& env) const
+void SimulatorBuilder::add_controller(const YamlModel& model, ssc::data_source::DataSource* const data_source) const
 {
     bool parsed = false;
-    for (auto try_to_parse:force_parsers)
+    data_source->check_in(__PRETTY_FUNCTION__);
+    for (auto try_to_parse:controller_parsers)
     {
-        boost::optional<ForcePtr> f = try_to_parse(model, body_name, env);
+        boost::optional<ControllerPtr> f = try_to_parse(model, data_source);
         if (f)
         {
-            L.push_back(f.get());
+            data_source->add(*(f.get()));
             parsed = true;
-        }
-    }
-
-    if (not(parsed))
-    {
-        if (could_parse(controllable_force_parsers, model, body_name, env))
-        {
-            THROW(__PRETTY_FUNCTION__, InvalidInputException, "Model '" << model.model << "' is in the wrong section: it's in the 'external forces' section whereas it should be in the 'controlled forces' section.");
-        }
-        THROW(__PRETTY_FUNCTION__, InvalidInputException, "Simulator does not know model '" << model.model << "': maybe the name is misspelt or you are using an outdated version of this simulator, or maybe you put a controlled force (eg. maneuvering, propeller+rudder, etc.) in the 'external forces' section.");
-    }
-}
-
-void SimulatorBuilder::add(const YamlModel& model, ListOfControlledForces& L, const std::string& name, const EnvironmentAndFrames& env) const
-{
-    bool parsed = false;
-    for (auto try_to_parse:controllable_force_parsers)
-    {
-        boost::optional<ControllableForcePtr> f = try_to_parse(model, name, env);
-        if (f)
-        {
-            L.push_back(f.get());
-            parsed = true;
+            break;
         }
     }
     if (not(parsed))
     {
-        if (could_parse(force_parsers, model, name, env))
-        {
-            THROW(__PRETTY_FUNCTION__, InvalidInputException, "Model '" << model.model << "' is in the wrong section: it's in the 'controlled forces' section whereas it should be in the 'external forces' section.");
-        }
-        THROW(__PRETTY_FUNCTION__, InvalidInputException, "Simulator does not know model '" << model.model << "': maybe the name is misspelt or you are using an outdated version of this simulator.");
+        THROW(__PRETTY_FUNCTION__, InvalidInputException, "Simulator does not know controller model '" << model.model << "': maybe the name is misspelt or you are using an outdated version of this simulator.");
     }
+    data_source->check_out();
 }
 
-std::vector<bool> SimulatorBuilder::are_there_surface_forces_acting_on_body(const std::vector<ListOfForces>& forces) const
-{
-    std::vector<bool> ret;
-    for (auto forces_acting_on_body:forces)
-    {
-        bool has_surface_forces = false;
-        for (auto force:forces_acting_on_body)
-        {
-            has_surface_forces |= force->is_a_surface_force_model();
-        }
-        ret.push_back(has_surface_forces);
-    }
-    return ret;
-}
-
-Sim SimulatorBuilder::build(const MeshMap& meshes) const
+Sim SimulatorBuilder::build(const MeshMap& meshes)
 {
     auto env = get_environment();
-    const auto forces = get_forces(env);
-    const auto controlled_forces = get_controlled_forces(env);
-    auto history_length = get_max_history_length(forces, controlled_forces);
-    const auto bodies = get_bodies(meshes, are_there_surface_forces_acting_on_body(forces), history_length);
+    const auto bodies = get_bodies(meshes, env);
     add_initial_transforms(bodies, env.k);
-    return Sim(bodies, forces, get_controlled_forces(env), env, get_initial_states(), command_listener);
+    get_controllers(&command_listener,bodies);
+    return Sim(bodies, env, get_initial_states(), command_listener);
 }
 
 StateType SimulatorBuilder::get_initial_states() const
@@ -259,7 +218,7 @@ StateType SimulatorBuilder::get_initial_states() const
     return ::get_initial_states(input.rotations, input.bodies);
 }
 
-Sim SimulatorBuilder::build() const
+Sim SimulatorBuilder::build()
 {
     return build(make_mesh_map());
 }

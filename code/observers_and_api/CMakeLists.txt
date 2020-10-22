@@ -26,6 +26,8 @@ set(SRC src/simulator_api.cpp
         src/XdynForME.cpp
         src/SimServerInputs.cpp
         src/EverythingObserver.cpp
+        src/ServerRequest.cpp
+        src/JSONServerObserver.cpp
         )
 
 # Using C++ 2011
@@ -56,6 +58,7 @@ include_directories(${yaml_parser_INCLUDE_DIRS})
 include_directories(${environment_models_INCLUDE_DIRS})
 include_directories(${external_file_formats_INCLUDE_DIRS})
 include_directories(${parser_extensions_INCLUDE_DIRS})
+include_directories(${controllers_INCLUDE_DIRS})
 include_directories(${grpc_INCLUDE_DIRS})
 
 add_library(${PROJECT_NAME} OBJECT ${SRC})

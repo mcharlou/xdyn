@@ -13,7 +13,7 @@
 #include <ssc/random_data_generator/DataGenerator.hpp>
 
 #include <ssc/macros.hpp>
-#include TR1INC(memory)
+#include <memory>
 
 #include "Body.hpp"
 #include "HDBParserForTests.hpp"
@@ -26,7 +26,7 @@ class RadiationDampingForceModelTest : public ::testing::Test
         virtual ~RadiationDampingForceModelTest();
         virtual void SetUp();
         virtual void TearDown();
-        TR1(shared_ptr)<HDBParser> get_hdb_data() const;
+        std::shared_ptr<HDBParser> get_hdb_data() const;
         YamlRadiationDamping get_yaml_data(const bool show_debug) const;
 
         ssc::random_data_generator::DataGenerator a;

@@ -5,7 +5,7 @@
 #include "GeometricTypes3d.hpp"
 
 #include <ssc/macros.hpp>
-#include TR1INC(memory)
+#include <memory>
 
 /**
  * \author gj
@@ -78,7 +78,7 @@ public:
     double orientation_factor;                                  //!< -1 if the facet is orientation clockwise, +1 otherwise
 };
 
-typedef TR1(shared_ptr)<Mesh> MeshPtr;
-typedef TR1(shared_ptr)<const Mesh> const_MeshPtr;
+typedef std::shared_ptr<Mesh> MeshPtr;
+typedef std::shared_ptr<const Mesh> const_MeshPtr;
 
 #endif //MESH_HPP

@@ -9,18 +9,16 @@
 #define MANEUVERINGFORCEMODEL_HPP_
 
 #include <map>
+#include <memory>
 
 #include <ssc/data_source.hpp>
 #include <ssc/macros.hpp>
 
-#include "ControllableForceModel.hpp"
+#include "ForceModel.hpp"
 #include "YamlPosition.hpp"
 #include "ManeuveringInternal.hpp"
 
-
-#include TR1INC(memory)
-
-class ManeuveringForceModel : public ControllableForceModel
+class ManeuveringForceModel : public ForceModel
 {
     public:
 
@@ -34,7 +32,7 @@ class ManeuveringForceModel : public ControllableForceModel
         };
         ManeuveringForceModel(const Yaml& data, const std::string& body_name, const EnvironmentAndFrames& env);
         static Yaml parse(const std::string& yaml);
-        ssc::kinematics::Vector6d get_force(const BodyStates& states, const double t, const std::map<std::string,double>& commands) const;
+        Vector6d get_force(const BodyStates& states, const double t, const EnvironmentAndFrames& env, const std::map<std::string,double>& commands) const override;
         static std::string model_name();
 
         double get_Tmax() const;
@@ -42,7 +40,7 @@ class ManeuveringForceModel : public ControllableForceModel
     private:
         ManeuveringForceModel();
         std::map<std::string, maneuvering::NodePtr> m;
-        TR1(shared_ptr)<ssc::data_source::DataSource> ds;
+        std::shared_ptr<ssc::data_source::DataSource> ds;
 };
 
 #endif /* MANEUVERINGFORCEMODEL_HPP_ */

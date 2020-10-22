@@ -11,13 +11,13 @@
 #include "YamlCommands.hpp"
 
 #include <ssc/macros.hpp>
-#include TR1INC(memory)
+#include <memory>
 
 void add_interpolation_table(const std::string& x_name, const std::vector<double>& x, const std::string& y_name, const std::vector<double>& y, ssc::data_source::DataSource& ds);
 void add_interpolation_table(const std::string& x_name, const std::vector<double>& x, const std::string& y_name, const std::vector<double>& y, ssc::data_source::DataSource& ds)
 {
     ds.check_in(__PRETTY_FUNCTION__);
-    TR1(shared_ptr)<ssc::interpolation::LinearInterpolationVariableStep> I(new ssc::interpolation::LinearInterpolationVariableStep(x, y));
+    std::shared_ptr<ssc::interpolation::LinearInterpolationVariableStep> I(new ssc::interpolation::LinearInterpolationVariableStep(x, y));
 
     const std::string module_name = x_name + "->" + y_name;
     InterpolationModule module(&ds, module_name, x_name, y_name, I);
@@ -51,7 +51,7 @@ void add(std::vector<YamlCommands>::const_iterator& that_command, ssc::data_sour
             {
                 add_interpolation_table("t", t, namify(it->first, that_command->name), it->second, ds);
             }
-            catch(const ssc::interpolation::PiecewiseConstantVariableStepException& e)
+            catch(const ssc::interpolation::InterpolatorException& e)
             {
                 THROW(__PRETTY_FUNCTION__, InvalidInputException, "Unable to build interpolation table between 't' and '" << it->first << "' for force model '" << that_command->name << "': " << e.get_message());
             }

@@ -6,13 +6,13 @@
  */
 
 #include <algorithm>    // std::reverse
-
+#include <iostream>
 #include <boost/math/tools/roots.hpp>
 
 #include <ssc/macros/tr1_macros.hpp>
 #include <ssc/interpolation.hpp>
 #include <ssc/integrate.hpp>
-typedef TR1(shared_ptr)<ssc::interpolation::Interpolator> InterpolatorPtr;
+typedef std::shared_ptr<ssc::interpolation::Interpolator> InterpolatorPtr;
 
 #define _USE_MATH_DEFINE
 #include <cmath>
@@ -82,7 +82,7 @@ std::function<double(double)> RadiationDampingBuilder::build_retardation_functio
     return build_interpolator(taus, y);
 }
 
-double RadiationDampingBuilder::convolution(const History& h, //!< State history
+double RadiationDampingBuilder::convolution(const std::function<double(double)>& h, //!< State history
                                            const std::function<double(double)>& f, //!< Function to convolute with
                                            const double Tmin, //!< Beginning of the convolution (because retardation function may not be defined for T=0)
                                            const double Tmax  //!< End of the convolution
@@ -107,6 +107,47 @@ double RadiationDampingBuilder::convolution(const History& h, //!< State history
             break;
         case TypeOfQuadrature::BURCHER:
             out = ssc::integrate::Burcher(g).integrate_f(Tmin, Tmax, eps);
+            break;
+        case TypeOfQuadrature::CLENSHAW_CURTIS:
+        {
+            THROW(__PRETTY_FUNCTION__, InternalErrorException, "Clenshaw-Curtis's method is not suitable for convolution: use gauss-kronrod, rectangle, simpson, trapezoidal, or burcher.");
+            break;
+        }
+        case TypeOfQuadrature::FILON:
+        {
+            THROW(__PRETTY_FUNCTION__, InternalErrorException, "Filon's method is not suitable for convolution: use gauss-kronrod, rectangle, simpson, trapezoidal, or burcher.");
+            break;
+        }
+        default:
+            THROW(__PRETTY_FUNCTION__, InternalErrorException, "Unknown quadrature type");
+            break;
+    }
+    return out;
+}
+
+double RadiationDampingBuilder::integral(const std::function<double(double)>& f, //!< Function to integrate
+											const double Tmin, //!< Beginning of the integral
+											const double Tmax  //!< End of the integral
+) const
+{
+    const double eps = 1e-2;
+    double out = 0;
+    switch (type_of_quadrature_for_convolution)
+    {
+        case TypeOfQuadrature::GAUSS_KRONROD:
+            out = ssc::integrate::GaussKronrod(f).integrate_f(Tmin, Tmax, eps);
+            break;
+        case TypeOfQuadrature::RECTANGLE:
+            out = ssc::integrate::Rectangle(f).integrate_f(Tmin, Tmax, eps);
+            break;
+        case TypeOfQuadrature::SIMPSON:
+            out = ssc::integrate::Simpson(f).integrate_f(Tmin, Tmax, eps);
+            break;
+        case TypeOfQuadrature::TRAPEZOIDAL:
+            out = ssc::integrate::TrapezoidalIntegration(f).integrate_f(Tmin, Tmax, eps);
+            break;
+        case TypeOfQuadrature::BURCHER:
+            out = ssc::integrate::Burcher(f).integrate_f(Tmin, Tmax, eps);
             break;
         case TypeOfQuadrature::CLENSHAW_CURTIS:
         {

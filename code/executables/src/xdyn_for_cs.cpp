@@ -6,8 +6,9 @@
 #include <ssc/websocket/WebSocketServer.hpp>
 #include <ssc/text_file_reader.hpp>
 #include <ssc/macros.hpp>
-#include TR1INC(memory)
+#include <memory>
 #include <sstream>
+#include <string>
 
 using namespace ssc::websocket;
 
@@ -28,7 +29,7 @@ std::string replace_newlines_by_spaces(std::string str)
 
 struct SimulationMessage : public MessageHandler
 {
-    SimulationMessage(const TR1(shared_ptr)<SimServer>& simserver, const bool verbose_) : sim_server(simserver), verbose(verbose_)
+    SimulationMessage(const std::shared_ptr<SimServer>& simserver, const bool verbose_) : sim_server(simserver), verbose(verbose_)
     {
     }
     void operator()(const Message& msg)
@@ -48,7 +49,7 @@ struct SimulationMessage : public MessageHandler
     }
 
     private:
-        TR1(shared_ptr)<SimServer> sim_server;
+        std::shared_ptr<SimServer> sim_server;
         const bool verbose;
 };
 
@@ -69,14 +70,22 @@ void inthand(int)
 void start_server(const XdynForCSCommandLineArguments& input_data);
 void start_server(const XdynForCSCommandLineArguments& input_data)
 {
-    const ssc::text_file_reader::TextFileReader yaml_reader(input_data.yaml_filenames);
-    const auto yaml = yaml_reader.get_contents();
-    TR1(shared_ptr)<SimServer> sim_server (new SimServer(yaml, input_data.solver, input_data.initial_timestep));
+	std::string yaml;
+	if(input_data.inline_yaml){
+		for(std::string str:input_data.yaml_filenames){
+			yaml.append("\n\n");
+			yaml.append(str);
+		}
+	}
+	else{
+		yaml = ssc::text_file_reader::TextFileReader(input_data.yaml_filenames).get_contents();
+	}
+    std::shared_ptr<SimServer> sim_server (new SimServer(yaml, input_data.solver, input_data.initial_timestep));
     SimulationMessage handler(sim_server, input_data.verbose);
     std::cout << "Starting websocket server on " << ADDRESS << ":" << input_data.port << " (press Ctrl+C to terminate)" << std::endl;
-    TR1(shared_ptr)<ssc::websocket::Server> w(new ssc::websocket::Server(handler, input_data.port, input_data.show_websocket_debug_information));
+    std::shared_ptr<ssc::websocket::Server> w(new ssc::websocket::Server(handler, input_data.port, input_data.show_websocket_debug_information));
     signal(SIGINT, inthand);
-    while(!stop){}
+    while(!stop){sleep(60);}
     std::cout << std::endl << "Gracefully stopping the websocket server..." << std::endl;
 }
 

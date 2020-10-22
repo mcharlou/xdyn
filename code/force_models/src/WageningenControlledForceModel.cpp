@@ -5,15 +5,16 @@
  *      Author: cady
  */
 
-#include "WageningenControlledForceModel.hpp"
+#include <ssc/yaml_parser.hpp>
+#include <cmath>
+#include <iostream>
 
 #include "Body.hpp"
 #include "external_data_structures_parsers.hpp"
 #include "InvalidInputException.hpp"
-
-#include <ssc/yaml_parser.hpp>
-
 #include "yaml.h"
+
+#include "WageningenControlledForceModel.hpp"
 
 std::string WageningenControlledForceModel::model_name() {return "wageningen B-series";}
 
@@ -26,9 +27,9 @@ WageningenControlledForceModel::Yaml::Yaml() :
 }
 
 WageningenControlledForceModel::Yaml::Yaml(const AbstractWageningen::Yaml& y) :
-                AbstractWageningen::Yaml(y),
-                number_of_blades(),
-                blade_area_ratio()
+        AbstractWageningen::Yaml(y),
+        number_of_blades(),
+        blade_area_ratio()
 {
 }
 
@@ -44,8 +45,8 @@ double WageningenControlledForceModel::get_Kq(const std::map<std::string,double>
     return Kq(Z, AE_A0, P_D, J);
 }
 
-WageningenControlledForceModel::WageningenControlledForceModel(const Yaml& input, const std::string& body_name_, const EnvironmentAndFrames& env_) :
-            AbstractWageningen(input, body_name_, env_),
+WageningenControlledForceModel::WageningenControlledForceModel(const Yaml& input, const std::string& body_name, const EnvironmentAndFrames& env) :
+            AbstractWageningen(input, body_name, env, {"P/D"}),
             Z(input.number_of_blades),
             AE_A0(input.blade_area_ratio),
             ct{0.00880496,-0.204554,0.166351,0.158114,-0.147581,-0.481497,0.415437,0.0144043,-0.0530054,0.0143481,0.0606826,-0.0125894,0.0109689,-0.133698,0.00638407,-0.00132718,0.168496,-0.0507214,0.0854559,-0.0504475,0.010465,-0.00648272,-0.00841728,0.0168424,-0.00102296,-0.0317791,0.018604,-0.00410798,-0.000606848,-0.0049819,0.0025983,-0.000560528,-0.00163652,-0.000328787,0.000116502,0.000690904,0.00421749,0.0000565229,-0.00146564},
@@ -59,7 +60,6 @@ WageningenControlledForceModel::WageningenControlledForceModel(const Yaml& input
             uq{0,0,0,0,1,1,1,1,0,0,0,0,1,1,1,1,1,1,2,2,2,2,2,2,2,2,0,0,0,1,1,2,2,2,2,0,0,0,1,1,1,1,2,2,2,2,2},
             vq{0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,2,2,2,2,2,2,2,2,2,2,2,2}
 {
-    commands.push_back("P/D");
     if ((Z<2) or (Z>7))
     {
         THROW(__PRETTY_FUNCTION__, InvalidInputException, "Invalid number of blades Z received: expected 2 <= Z <= 7 but got Z=" << Z);
@@ -95,7 +95,7 @@ double WageningenControlledForceModel::Kt(const size_t Z, const double AE_A0_, c
     const double saturated_J = saturate(J);
     for (size_t i = 0 ; i < NB_COEFF_KT ; ++i)
     {
-        kt += ct[i]*std::pow(saturated_J, st[i])*std::pow(P_D, tt[i])*std::pow(AE_A0_, ut[i])*std::pow(Z,vt[i]);
+        kt += ct[i]*pow(saturated_J, st[i])*pow(P_D, tt[i])*pow(AE_A0_, ut[i])*pow(Z,vt[i]);
     }
     return kt;
 }
@@ -107,7 +107,7 @@ double WageningenControlledForceModel::Kq(const size_t Z, const double AE_A0_, c
     const double saturated_J = saturate(J);
     for (size_t i = 0 ; i < NB_COEFF_KQ ; ++i)
     {
-        kq += cq[i]*std::pow(saturated_J, sq[i])*std::pow(P_D, tq[i])*std::pow(AE_A0_, uq[i])*std::pow(Z,vq[i]);
+        kq += cq[i]*pow(saturated_J, sq[i])*pow(P_D, tq[i])*pow(AE_A0_, uq[i])*pow(Z,vq[i]);
     }
     return kq;
 }

@@ -67,12 +67,12 @@ ManeuveringForceModel::Yaml ManeuveringForceModel::parse(const std::string& yaml
     return ret;
 }
 
-ManeuveringForceModel::ManeuveringForceModel(const Yaml& data, const std::string& body_name_, const EnvironmentAndFrames& env_) :
-        ControllableForceModel(data.name, data.commands, data.frame_of_reference, body_name_, env_),
+ManeuveringForceModel::ManeuveringForceModel(const Yaml& data, const std::string& body_name, const EnvironmentAndFrames& env) :
+        ForceModel(data.name, body_name, env, data.frame_of_reference, data.commands),
         m(),
         ds(new ssc::data_source::DataSource())
 {
-    env.k->add(make_transform(data.frame_of_reference, data.name, env.rot));
+    //env.k->add(make_transform(data.frame_of_reference, data.name, env.rot));
     for (auto var2expr:data.var2expr)
     {
         m[var2expr.first] = maneuvering::compile(var2expr.second, env.rot);
@@ -83,7 +83,7 @@ ManeuveringForceModel::ManeuveringForceModel(const Yaml& data, const std::string
     maneuvering::build_ds(*ds, m);
 }
 
-ssc::kinematics::Vector6d ManeuveringForceModel::get_force(const BodyStates& states, const double t, const std::map<std::string,double>& commands) const
+ssc::kinematics::Vector6d ManeuveringForceModel::get_force(const BodyStates& states, const double t, const EnvironmentAndFrames& env, const std::map<std::string,double>& commands) const
 {
     ds->check_in(__PRETTY_FUNCTION__);
     ds->set("states", states);

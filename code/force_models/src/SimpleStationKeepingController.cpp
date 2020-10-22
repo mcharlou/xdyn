@@ -5,16 +5,16 @@
  *      Author: cady
  */
 
-#include "SimpleStationKeepingController.hpp"
-
-#include "yaml.h"
-
-#include "BodyStates.hpp"
-#include "external_data_structures_parsers.hpp"
+#include <cmath>
 #include <ssc/yaml_parser.hpp>
 
+#include "yaml.h"
+#include "BodyStates.hpp"
+#include "external_data_structures_parsers.hpp"
+
+#include "SimpleStationKeepingController.hpp"
+
 #define _USE_MATH_DEFINE
-#include <cmath>
 #define PI M_PI
 
 std::string SimpleStationKeepingController::model_name() {return "simple station-keeping controller";}
@@ -27,8 +27,7 @@ SimpleStationKeepingController::Yaml::Yaml() :
             T_y(),
             ksi_psi(),
             T_psi()
-{
-}
+{}
 
 SimpleStationKeepingController::Yaml SimpleStationKeepingController::parse(const std::string& yaml)
 {
@@ -47,24 +46,21 @@ SimpleStationKeepingController::Yaml SimpleStationKeepingController::parse(const
     return ret;
 }
 
-SimpleStationKeepingController::SimpleStationKeepingController(const Yaml& input, const std::string& body_name_, const EnvironmentAndFrames& env_) :
-        ControllableForceModel(input.name, {"x_co", "y_co", "psi_co"}, YamlPosition(YamlCoordinates(),YamlAngle(), body_name_), body_name_, env_),
+SimpleStationKeepingController::SimpleStationKeepingController(const Yaml& input, const std::string& body_name, const EnvironmentAndFrames&) :
+        ForceModel(input.name, body_name, {"x_co", "y_co", "psi_co"}),
         ksi_x(input.ksi_x),
         omega_x(2*PI/input.T_x),
         ksi_y(input.ksi_y),
         omega_y(2*PI/input.T_y),
         ksi_psi(input.ksi_psi),
-        omega_psi(2*PI/input.T_psi),
-        rotation_convention("angle", {"z","y'","x''"})
+        omega_psi(2*PI/input.T_psi)
+{}
+
+Vector6d SimpleStationKeepingController::get_force(const BodyStates& states, const double, const EnvironmentAndFrames& env, const std::map<std::string,double>& commands) const
 {
+    Vector6d ret = Vector6d::Zero();
 
-}
-
-ssc::kinematics::Vector6d SimpleStationKeepingController::get_force(const BodyStates& states, const double, const std::map<std::string,double>& commands) const
-{
-    ssc::kinematics::Vector6d ret = ssc::kinematics::Vector6d::Zero();
-
-    const auto angles = states.get_angles(rotation_convention);
+    const auto angles = states.get_angles(env.rot);
     const double delta_x = commands.at("x_co") - states.x();
     const double delta_y = commands.at("y_co") - states.y();
     const double delta_psi = commands.at("psi_co") - angles.psi;
