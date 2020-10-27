@@ -5111,3 +5111,32 @@ std::string test_data::gRPC_force_model()
        << "c: 1\n";
     return ss.str();
 }
+
+std::string test_data::MMG_manoeuvring_force_model()
+{
+    std::stringstream ss;
+    ss << "model: MMG manoeuvring\n"
+	   << "calculation point in body frame:\n"
+	   << "     x: {value: -11.1, unit: m}\n"
+	   << "     y: {value: 0, unit: m}\n"
+	   << "     z: {value: 0, unit: m}\n"
+	   << "Lpp: {value: 320, unit: m}\n"
+	   << "T: {value: 20.8, unit: m}\n"
+	   << "Xvv: -0.04\n"
+	   << "Xrr: 0.011\n"
+	   << "Xvr: 0.002\n"
+	   << "Xvvvv: 0.771\n"
+	   << "Yv: -0.315\n"
+	   << "Yr: 0.083\n"
+	   << "Yvvv: -1.607\n"
+	   << "Yrvv: 0.379\n"
+	   << "Yvrr: -0.391\n"
+	   << "Yrrr: 0.008\n"
+	   << "Nv: -0.137\n"
+	   << "Nr: -0.049\n"
+	   << "Nvvv: -0.03\n"
+	   << "Nrvv: -0.294\n"
+	   << "Nvrr: 0.055\n"
+	   << "Nrrr: -0.013\n";
+    return ss.str();
+}
